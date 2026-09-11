@@ -7,9 +7,9 @@ where it is specified.
 two ever disagree, the spec wins and this file is wrong. It is rewritten at the end of each phase
 to match what actually exists.
 
-**Status:** phases 1–3 are built (the engine, the board on the phone, specials and the meter).
-Anything marked *not built yet* is described so the shape is clear, but nothing in the app does
-it.
+**Status:** phases 1–4 are built (the engine, the board on the phone, specials and the meter, and
+now the level rules: goals, blockers, beads, winning and losing). Anything marked *not built yet*
+is described so the shape is clear, but nothing in the app does it.
 
 ---
 
@@ -31,10 +31,11 @@ cleared. (§3)
 ## A move
 
 Swipe one ball into the one next to it. The swap is legal if it makes a line of three or more, or
-if either piece is a special. Anything else snaps back and costs you nothing. (§3)
+if either piece is a special. Anything else snaps back and costs you nothing. A knot, a tangle
+and a moth cannot be picked up at all, so swiping from one does nothing. (§3, §5)
 
-Every level has a move limit. A legal swap spends one move. Firing a special in place by
-double-tapping it also spends one. (§3, §11 phase-3 conventions)
+Every level has a move limit, and the counter drops the moment the swipe is taken. Firing a
+special in place by double-tapping it also spends one. (§3, §11 conventions)
 
 **Matching** is three or more of the same colour in a straight line. An L or a T counts by its
 total, so an L of five is a five-match. (§3)
@@ -44,7 +45,8 @@ make new matches on their own. Each chain in a row scores more: ×1, then ×2, �
 
 **No moves left?** The board says "Untangling…" and reshuffles itself, never into an instant
 match. A board with a special still on it is never shuffled away, because firing that special is
-a move. (§3, §11 phase-3 conventions)
+a move. If no arrangement of what is left is playable — moths have eaten most of the board, say —
+the level simply ends. (§3, §11 conventions)
 
 ## Specials
 
@@ -62,7 +64,7 @@ the line if a cascade made it. (§3, §4)
 
 Those letters are scaffolding. Phase 5 replaces every one of them with real art, and the letter
 is only there so you can tell a Popcorn from a Yarn Bomb on a board of plain circles. C is
-Popcorn because P was taken. (§11 phase-3 conventions, §16)
+Popcorn because P was taken. (§11 conventions, §16)
 
 **The blast shape** is a square with its four corners rounded off, which is why the counts are 21
 and 45 and 77 rather than 25, 49 and 81. A Puff is the exception and is a plus. (§4)
@@ -118,14 +120,63 @@ ignores colour completely: it clears whole lines. Swipe it sideways and it sweep
 swipe it up or down and it sweeps three columns, and double-tapping it sweeps rows. (§4)
 
 Right now the meter is a row of pips under the board. The real thing is a round dial beside the
-board, and it arrives with the rest of the interface. (§11 phase-3 conventions)
+board, and it arrives with the rest of the interface. (§11 conventions)
+
+## What a level asks for
+
+The goals panel sits to the left of the board: the level's name at the top, what it still needs
+in the middle, the moves left at the bottom. Levels mix goals. (§6, §11)
+
+| Goal | What you do | How it counts |
+|---|---|---|
+| **Stitch** | clear the piece standing on a marked square and the square is stitched | some squares take two |
+| **Collect** | clear so many balls of one colour | cascades and blasts count too |
+| **Beads** | get the beads to the bottom row | they can be swapped but never matched, and nothing destroys them |
+| **Clear** | get rid of every tangle, knot or moth | what is left is counted off the board itself |
+| **Buried** | dig out the buttons hidden under two-layer tangles | the button comes out with the last layer |
+
+Stitch and Clear count what is on the board, so a moth that spreads puts a Clear goal **back up**.
+The others count events and never go below zero. (§6, §11 conventions)
+
+## Blockers
+
+| On screen | What it is | How it goes |
+|---|---|---|
+| A rounded square with a number | **Tangle**, 1 to 3 layers; nothing falls through it | one layer per match that touches it, and one per blast whose area covers or touches it |
+| A ball with a thick ring and a knob | **Knot**: a ball tied in place that cannot be swapped, but still matches where it sits | clear it in a match or a blast, like any ball |
+| A cocoa diamond marked M | **Moth**: fills a cell | any match or blast that touches it |
+
+A match that lies along two sides of a tangle still strips one layer; two separate matches strip
+two. A frog rip is not a blast and damages neither tangles nor moths. (§5, decided 2026-09-10)
+
+**Moths multiply.** At the end of any move where you did not clear a moth, one moth eats a plain
+ball beside it and a new moth grows there — the old one stays. Specials, knots, beads and the
+frog are safe from them. Clear them faster than they breed. (§5, decided 2026-09-11)
+
+## Beads
+
+A bead is a cream diamond. It falls like a ball, can be swapped like a ball, never matches, and
+nothing destroys it. It leaves through an exit — the bottom open cell of each column unless the
+level says otherwise — and one leaves as soon as it lands on one. A bead resting on a tangle or a
+knot waits there until that blocker goes. On levels with a schedule, a new bead drops from the
+top every few moves until the level's total has been delivered. (§6, decided 2026-09-10)
+
+## Winning and losing
+
+Finish every goal and the level pays out: each move you did not use turns into a Puff or a
+Bobble, they all go off one after another and chain into each other, and you get **20 coins a
+move** on top of the level's own coins. Banner: *Fastened off!* (§6, §7)
+
+Run out of moves first and it says *Ran out of yarn.* Either way you can try again on a fresh
+board or go home. The offer of five more moves for stitch markers comes with lives and the shop
+in phase 6. (§6, §8)
 
 ## Score
 
 A cleared ball is 20, multiplied by the cascade you are on. Making a special pays a flat bonus:
 60 for a Puff, 120 a Bobble, 250 a Popcorn, 500 a Yarn Bomb. A Frog rip pays a flat 500 on top of
-the balls it took. Later: 1,000 for stitching a square, 200 a blocker layer, 2,000 a delivered
-bead. (§7)
+the balls it took. Stitching a square is 1,000, a blocker layer 200, a delivered bead 2,000. The
+Yarn Over bonus pays coins, not score. (§7)
 
 ---
 
@@ -133,47 +184,59 @@ bead. (§7)
 
 Everything above is playable today. These are specified and waiting their turn.
 
-**Goals** (phase 4). A level is a crochet project and its goals are what the project needs:
-stitch the squares of the pattern by clearing the pieces on them, collect so many balls of a
-colour, drop beads to the bottom, clear every tangle, or dig out buried buttons. Levels mix them.
-(§6)
-
-**Blockers** (phase 4). Tangles fill a cell in one to three layers and lose one to each match or
-blast that touches them. Knots tie a ball in place so it cannot be swapped, though it still
-matches where it sits. Moths fill a cell and spread to a neighbour at the end of any move where
-none was cleared. (§5)
-
-**Winning and losing** (phase 4). Finish the goals and the level pays out Fastened off!, turning
-each unused move into a special that fires. Run out of moves first and you are offered five more
-for stitch markers, or you lose a life. (§6, §8)
+**Real art** (phase 5). Every circle, letter and outline on the board is a placeholder: the yarn
+balls, the special overlays, the frog, the bead, the tangle, the moth, the stitched tile and the
+meter dial are all drawn in phase 5, along with the level card, the win screen's project
+illustration, sounds and haptics.
 
 **The room** (phase 6). Every finished project decorates the Craft Nook, which is what the coins
-are for.
+are for. Book 1's fifteen levels are authored then too, and the shipped level list is empty until
+they exist — the boards on Home today are development boards.
 
-**Lives, boosters, the shop, purchases** (phases 6–7).
+**Lives, the Continue prompt, boosters, the shop, purchases** (phases 6–7).
 
 ---
 
 ## Trying it on the phone
 
-`npm run mobile`, scan the QR in Expo Go. Home has two Play buttons: the first is a frog-meter
-board, the second a hook board. Both are development boards with specials already sitting in the
-corners so everything is reachable in the first few moves, which is not how a real level starts.
+`npm run mobile`, scan the QR in Expo Go. Home lists five development boards: the two sandboxes
+from phase 3 (a frog-meter board and a hook board, with specials already in the corners) and the
+three test levels below. Sandboxes have no goals and 999 moves, so they can only be played, not
+won.
 
-Work down this list:
+**Ring coaster** — the stitch level:
 
-1. Make a 4-match in open board. A **P** appears where you swiped.
-2. Swipe that P sideways. It fires rather than moving, and spends a move.
-3. Make another and double-tap it instead. Same blast, same cost.
-4. Make a 5-match and fire the **B** away from the edges. Roughly 21 cells go.
-5. Fire one in a corner and watch it clipped to about 8. That is correct.
-6. Set a blast off so it covers another special. They chain.
-7. Swap two specials together. One bigger blast, not two.
-8. Watch the pips fill as things fire, and keep going until the **F** drops.
-9. Swap the F with a ball. Every ball of that colour goes.
-10. Double-tap another F on its own. It takes the commonest colour instead.
-11. On the hook board, swipe the **H** sideways, then make another and swipe it up or down.
-12. While a long chain is playing, swipe on a quiet corner. It should land as the board settles.
+1. The pattern is drawn under the balls as outlined squares. Clear a ball standing on one and
+   the square fills in olive.
+2. The centre square has two layers: it takes two clears, and the outline thins after the first.
+3. The goals panel counts the squares down as you go, and the move counter drops the instant you
+   swipe, not when the board settles.
+4. Win it. The moves you have left turn into P and B balls all over the board, they go off one
+   after another, and *Fastened off!* shows the score and the coins (100 plus 20 a move).
+5. Retry deals a fresh board of the same level; Home goes back with nothing left underneath.
+6. Play another and waste the moves instead: *Ran out of yarn.*, with the same two buttons.
 
-`npm run play -- packages/engine/fixtures/specials-holes.json --seed 3` plays the same rules in
-the terminal as text, which is often the quickest way to see what the engine thinks happened.
+**Charm tail** — collect and beads:
+
+7. The bead is a cream diamond in the middle. Swipe it sideways: it moves like a ball but never
+   makes a match.
+8. Get it to the bottom row and it drops off the edge; the beads goal ticks down.
+9. On moves 4 and 8 a new bead falls in from the top, from a random column.
+10. The rust count only moves when rust balls clear — cascades and blasts included.
+
+**Moths in the stash** — blockers:
+
+11. A match beside a tangle nudges it and its number drops. Two matches in one move take two
+    layers.
+12. The two tangles marked with a button release it when the last layer goes, and the buried
+    count drops.
+13. Touch a moth with a match or a blast and it goes. Make a move that clears none, and a second
+    moth appears beside one of them, eating the ball that was there.
+14. The moth goal can go **up**. That is the level, not a bug: clear them faster than they spread.
+
+Throughout: the console never warns about drift or `buildMove`, and a swipe on a quiet corner
+during a long chain still lands when the board settles.
+
+`npm run play -- packages/levels/levels/dev/moths-7x7.json --seed 2` plays the same rules in the
+terminal as text, which is often the quickest way to see what the engine thinks happened; it
+prints the goals and the coins after every move.

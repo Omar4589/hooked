@@ -1,16 +1,17 @@
-// The step player against the engine itself. For every fixture and the sandbox board we play
-// real moves, rebuild the board with applySteps (packages/engine/src/replay.js, the contract
-// the phone's player must honour) and check that buildMove's model agrees cell for cell — then
-// sample the timeline it produced and check it starts where the board was, ends where the board
-// is, and never lets a column cross itself on the way.
+// The step player against the engine itself. For every fixture and every development board we
+// play real moves, rebuild the board with applySteps (packages/engine/src/replay.js, the
+// contract the phone's player must honour) and check that buildMove's model agrees cell for
+// cell, pieces and layers alike — then sample the timeline it produced and check it starts
+// where the board was, ends where the board is, and never lets a column cross itself on the way.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { applySteps, createGame, createRng } from '@hooked/engine';
-import { buildModel, piecesOf, projectPieces } from './model.js';
+import { listDevLevels, loadLevel } from '@hooked/levels';
+import { buildModel, cellsOf, piecesOf, projectCells, projectPieces } from './model.js';
 import { buildMove } from './move.js';
-import { sampleTrack } from './animate.js';
+import { sampleCell, sampleTrack } from './animate.js';
 import { SWAP_MS } from './timings.js';
 
 const root = new URL('../../../../', import.meta.url);
@@ -21,7 +22,8 @@ const boards = [
     .filter((f) => f.endsWith('.json'))
     .sort()
     .map((f) => [f.slice(0, -5), read(new URL(f, fixtures))]),
-  ['sandbox-9x9', read(new URL('packages/levels/levels/dev/sandbox-9x9.json', root))],
+  // every development board too, so the three phase-4 test levels are played here as well
+  ...listDevLevels().map((level) => [level.name, loadLevel(level.id)]),
 ];
 
 const P = (x, y) => ({ x, y });
@@ -31,6 +33,23 @@ const SAMPLES = 60;
 /** Every property of every track, so one loop can check ordering and finiteness. */
 const eachSegments = (track, fn) => {
   for (const key of ['x', 'y', 'scale', 'opacity']) fn(track[key], key);
+};
+
+/** The same for a cell's track, which has its own set of properties. */
+const eachCellSegments = (track, fn) => {
+  for (const key of ['x', 'y', 'scale', 'layers', 'moth', 'stitch', 'button']) {
+    fn(track[key], key);
+  }
+};
+
+const mothKeys = (board) => {
+  const keys = [];
+  board.cells.forEach((row, y) =>
+    row.forEach((cell, x) => {
+      if (cell.moth === true) keys.push(`${x},${y}`);
+    }),
+  );
+  return keys.sort();
 };
 
 test('buildMove reproduces the engine board and a playable timeline for every board and seed', () => {
@@ -60,9 +79,12 @@ test('buildMove reproduces the engine board and a playable timeline for every bo
           const move = buildMove(previous, steps, base);
           const where = `${name}/${seed}/${turn}`;
 
-          // the model is the engine's board, however the steps got there
-          assert.deepEqual(projectPieces(move.model), piecesOf(applySteps(before, steps)), where);
+          // the model is the engine's board, however the steps got there — pieces and layers
+          const replayed = applySteps(before, steps);
+          assert.deepEqual(projectPieces(move.model), piecesOf(replayed), where);
           assert.deepEqual(projectPieces(move.model), piecesOf(game.state().board), where);
+          assert.deepEqual(projectCells(move.model), cellsOf(replayed), `${where} cells`);
+          assert.deepEqual(projectCells(move.model), cellsOf(game.state().board), `${where} cells`);
 
           const mounts = new Set(move.mounts);
           const removedIds = new Set(move.removed.map((r) => r.id));
@@ -83,17 +105,22 @@ test('buildMove reproduces the engine board and a playable timeline for every bo
 
           // the timeline: ordered segments, and a last one that ends exactly at total
           let last = 0;
+          const scan = (segments, key) => {
+            let cursor = -1;
+            for (const s of segments) {
+              assert.ok(s.at >= cursor, `${where} ${key} out of order`);
+              assert.ok(Number.isFinite(s.to) && s.duration >= 0, `${where} ${key} not finite`);
+              cursor = s.at + s.duration;
+              if (cursor > last) last = cursor;
+            }
+          };
           for (const track of move.tracks.values()) {
             assert.equal(track.base, base, where);
-            eachSegments(track, (segments, key) => {
-              let cursor = -1;
-              for (const s of segments) {
-                assert.ok(s.at >= cursor, `${where} ${key} out of order`);
-                assert.ok(Number.isFinite(s.to) && s.duration >= 0, `${where} ${key} not finite`);
-                cursor = s.at + s.duration;
-                if (cursor > last) last = cursor;
-              }
-            });
+            eachSegments(track, scan);
+          }
+          for (const track of move.cells.values()) {
+            assert.equal(track.base, base, `${where} cell base`);
+            eachCellSegments(track, scan);
           }
           const endT = move.shuffle === null ? move.total : move.shuffle.at;
           if (move.shuffle === null) assert.equal(move.total, last, `${where} total`);
@@ -117,7 +144,9 @@ test('buildMove reproduces the engine board and a playable timeline for every bo
             const end = sampleTrack(track, endT);
             const entry = rendered.pieces.get(id);
             if (entry === undefined) {
-              assert.equal(end.scale, 0, `${where} ghost scale ${id}`);
+              // gone: faded out where it stood, or dropped off the bottom edge (a bead)
+              const offBoard = end.y >= rendered.height;
+              assert.ok(end.scale === 0 || offBoard, `${where} ghost scale ${id}`);
             } else {
               assert.ok(Math.abs(end.x - entry.x) < 1e-9, `${where} end x ${id}`);
               assert.ok(Math.abs(end.y - entry.y) < 1e-9, `${where} end y ${id}`);
@@ -125,6 +154,74 @@ test('buildMove reproduces the engine board and a playable timeline for every bo
               assert.equal(end.opacity, 1, `${where} end opacity ${id}`);
             }
           }
+
+          // every cell track starts and ends showing exactly what the board shows
+          const endCells = projectCells(rendered === move.model ? move.model : rendered);
+          for (const [key, track] of move.cells) {
+            const [cx, cy] = key.split(',').map(Number);
+            assert.deepEqual(sampleCell(track, 0), track.initial, `${where} cell start ${key}`);
+            const shown = sampleCell(track, endT);
+            const cell = endCells[cy][cx];
+            assert.equal(shown.layers, cell.tangle, `${where} cell layers ${key}`);
+            assert.equal(shown.moth, cell.moth ? 1 : 0, `${where} cell moth ${key}`);
+            assert.equal(shown.stitch, cell.stitch, `${where} cell stitch ${key}`);
+            assert.equal(shown.button, cell.buried ? 1 : 0, `${where} cell button ${key}`);
+            assert.equal(shown.scale, 1, `${where} cell scale ${key}`);
+            assert.ok(Math.abs(shown.x) < 1e-9 && Math.abs(shown.y) < 1e-9, `${where} cell home`);
+          }
+
+          // step by step: what each new step is allowed to change
+          let rolling = before;
+          for (const step of steps) {
+            const next = applySteps(rolling, [step]);
+            if (step.type === 'blocker') {
+              // a blocker step never moves a piece, and touches its own cell alone
+              assert.deepEqual(piecesOf(next), piecesOf(rolling), `${where} blocker pieces`);
+              const was = cellsOf(rolling);
+              const now = cellsOf(next);
+              for (let y = 0; y < rolling.height; y += 1) {
+                for (let x = 0; x < rolling.width; x += 1) {
+                  if (x === step.pos.x && y === step.pos.y) continue;
+                  assert.deepEqual(now[y][x], was[y][x], `${where} blocker spill (${x},${y})`);
+                }
+              }
+              if (step.kind === 'knot') assert.deepEqual(now, was, `${where} knot changed a cell`);
+            }
+            if (step.type === 'mothSpread') {
+              assert.equal(mothKeys(next).length, mothKeys(rolling).length + 1, `${where} moths`);
+              assert.ok(mothKeys(next).includes(`${step.to.x},${step.to.y}`), `${where} moth to`);
+              assert.ok(
+                mothKeys(next).includes(`${step.from.x},${step.from.y}`),
+                `${where} moth from`,
+              );
+            }
+            if (step.type === 'beadExit') {
+              const before4 = rolling.cells[step.pos.y][step.pos.x].piece;
+              assert.equal(before4?.kind, 'bead', `${where} bead exit`);
+              assert.equal(
+                next.cells[step.pos.y][step.pos.x].piece,
+                undefined,
+                `${where} bead gone`,
+              );
+            }
+            // layers only ever come off, except the moth a spread adds
+            const was = cellsOf(rolling);
+            const now = cellsOf(next);
+            for (let y = 0; y < rolling.height; y += 1) {
+              for (let x = 0; x < rolling.width; x += 1) {
+                assert.ok(now[y][x].tangle <= was[y][x].tangle, `${where} tangle grew (${x},${y})`);
+                assert.ok(now[y][x].stitch <= was[y][x].stitch, `${where} stitch grew (${x},${y})`);
+                if (now[y][x].moth && !was[y][x].moth) {
+                  assert.equal(step.type, 'mothSpread', `${where} moth appeared (${x},${y})`);
+                }
+              }
+            }
+            rolling = next;
+          }
+          // the bonus and the win go together
+          const bonus = steps.filter((s) => s.type === 'yarnOver');
+          assert.equal(move.yarnOver === null, bonus.length === 0, `${where} yarnOver`);
+          if (bonus.length > 0) assert.equal(game.state().status, 'won', `${where} won`);
 
           // A column never crosses itself once the swap is over: gravity keeps pieces in order,
           // so a stack that inverts on screen means a piece is falling through another. The swap

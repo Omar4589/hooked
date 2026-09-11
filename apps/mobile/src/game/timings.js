@@ -25,6 +25,24 @@
  * @property {Segment[]} opacity
  */
 
+/**
+ * What one *cell* does during one move: a tangle losing a layer, a moth arriving or going, a
+ * stitch square flipping, a button coming out. Same shape and same clock as a Track, but the
+ * values are what the cell shows rather than where a piece is — `x` and `y` are a nudge in
+ * place, never a move.
+ * @typedef {Object} CellTrack
+ * @property {number} base
+ * @property {{ x: number, y: number, scale: number, layers: number, moth: number,
+ *   stitch: number, button: number }} initial
+ * @property {Segment[]} x
+ * @property {Segment[]} y
+ * @property {Segment[]} scale
+ * @property {Segment[]} layers   tangle layers drawn
+ * @property {Segment[]} moth     0 to 1, the moth's presence
+ * @property {Segment[]} stitch   unstitched layers drawn
+ * @property {Segment[]} button   0 to 1, the buried button's presence
+ */
+
 /** Both pieces slide to each other's cell. */
 export const SWAP_MS = 150;
 
@@ -98,3 +116,27 @@ export const METER_MS = 150;
 
 /** How late the JS safety net fires when the UI clock's own callback never arrives. */
 export const FINISH_SLACK_MS = 250;
+
+/** A tangle, moth or knot shakes and loses a layer; a stitch square flips (§16). */
+export const BLOCKER_MS = 150;
+
+/** How far a tangle or a moth nudges sideways as it is hit, in cells. */
+export const BLOCKER_SHAKE = 0.08;
+
+/** The scale pop of a stitch square flipping, and of a button coming out of its tangle. */
+export const CELL_POP_SCALE = 1.15;
+
+/** A moth eats the ball beside it and a new one grows there (§16 `mothSpread`). */
+export const MOTH_MS = 250;
+
+/** How far the moth that is eating lunges toward its meal, in cells. */
+export const MOTH_LUNGE = 0.2;
+
+/** A bead drops off the bottom edge (§16 `beadExit`). */
+export const BEAD_EXIT_MS = 250;
+
+/** How far past the edge it drops before the board's clip takes it, in cells. */
+export const BEAD_EXIT_DROP = 0.5;
+
+/** Yarn Over places its specials inside this window, one after another (§16 `yarnOver`). */
+export const YARN_OVER_PLACE_MS = 400;

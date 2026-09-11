@@ -8,7 +8,21 @@ import assert from 'node:assert/strict';
 import { parseBoard } from '@hooked/engine';
 import { buildModel, projectPieces } from './model.js';
 import { buildMove, quietCells } from './move.js';
-import { CLEAR_MS, FALL_MS, SWAP_MS } from './timings.js';
+import {
+  BEAD_EXIT_DROP,
+  BEAD_EXIT_MS,
+  BLAST_MS,
+  BLOCKER_MS,
+  BLOCKER_SHAKE,
+  CELL_POP_SCALE,
+  CLEAR_MS,
+  CREATE_MS,
+  FALL_MS,
+  MOTH_LUNGE,
+  MOTH_MS,
+  SWAP_MS,
+  YARN_OVER_PLACE_MS,
+} from './timings.js';
 
 const P = (x, y) => ({ x, y });
 const yarn = (color, extra = {}) => ({ kind: 'yarn', color, ...extra });
@@ -282,7 +296,7 @@ test('an empty stream and an unknown step: nothing to play, or a loud failure', 
   assert.equal(move.total, 0);
   assert.equal(move.tracks.size, 0);
   assert.deepEqual(colors(move.model), colors(model));
-  assert.throws(() => buildMove(model, [{ type: 'mothSpread', from: P(0, 0) }]), /unsupported/);
+  assert.throws(() => buildMove(model, [{ type: 'confetti', pos: P(0, 0) }]), /unsupported/);
 });
 
 test('buildMove never touches the model it was given', () => {
@@ -442,4 +456,277 @@ test('a meter step records the charge and costs the move no time at all', () => 
   assert.equal(move.total, 0);
   assert.equal(move.tracks.size, 0);
   assert.equal(buildMove(model, []).meter, null);
+});
+
+const blocker = (pos, kind, layersLeft, extra = {}) => ({
+  type: 'blocker',
+  pos,
+  kind,
+  layersLeft,
+  points: kind === 'stitch' ? 1000 : 200,
+  ...extra,
+});
+const stitchModel = (rows, stitch) => buildModel(parseBoard(rows, stitch));
+const cellsOfMove = (move) => [...move.cells.keys()].sort();
+
+test('a tangle blocker nudges its cell and fades one layer inside a 150 ms window', () => {
+  const model = modelOf(['o. #2']);
+  const move = buildMove(model, [blocker(P(1, 0), 'tangle', 1)]);
+  assert.equal(move.total, BLOCKER_MS);
+  const track = move.cells.get('1,0');
+  assert.equal(track.initial.layers, 2);
+  assert.deepEqual(track.layers, [{ at: 0, duration: BLOCKER_MS, to: 1, easing: 'linear' }]);
+  assert.deepEqual(track.x, [
+    { at: 0, duration: BLOCKER_MS / 2, to: BLOCKER_SHAKE, easing: 'out' },
+    { at: BLOCKER_MS / 2, duration: BLOCKER_MS / 2, to: 0, easing: 'outBack' },
+  ]);
+  assert.equal(move.model.tangle[0][1], 1);
+  assert.equal(move.tracks.size, 0);
+  assert.deepEqual(move.removed, []);
+});
+
+test('consecutive blocker steps share one window, and two layers off one cell fold into one slide', () => {
+  const model = stitchModel(['#2 @. o.'], ['. . 1']);
+  const move = buildMove(model, [
+    clear([P(2, 0)]),
+    blocker(P(0, 0), 'tangle', 1),
+    blocker(P(0, 0), 'tangle', 0),
+    blocker(P(1, 0), 'moth', 0),
+    blocker(P(2, 0), 'stitch', 0),
+  ]);
+  assert.equal(move.total, CLEAR_MS + BLOCKER_MS);
+  assert.deepEqual(cellsOfMove(move), ['0,0', '1,0', '2,0']);
+  const tangle = move.cells.get('0,0');
+  assert.deepEqual(tangle.layers, [
+    { at: CLEAR_MS, duration: BLOCKER_MS, to: 0, easing: 'linear' },
+  ]);
+  assert.equal(tangle.x.length, 2);
+  assert.deepEqual(move.cells.get('1,0').moth, [
+    { at: CLEAR_MS, duration: BLOCKER_MS, to: 0, easing: 'in' },
+  ]);
+  const square = move.cells.get('2,0');
+  assert.equal(square.stitch[0].to, 0);
+  assert.equal(square.scale.length, 2);
+  assert.equal(square.scale[0].to, CELL_POP_SCALE);
+  assert.deepEqual(square.x, []);
+  assert.equal(move.model.tangle[0][0], 0);
+  assert.equal(move.model.moth[0][1], false);
+  assert.equal(move.model.stitch[0][2], 0);
+  for (const track of move.cells.values()) {
+    for (const key of ['x', 'layers', 'moth', 'stitch', 'scale', 'button']) {
+      for (const s of track[key]) assert.ok(s.at + s.duration <= move.total);
+    }
+  }
+});
+
+test('a knot blocker costs no time, draws nothing, and does not break a window', () => {
+  const model = modelOf(['oK #1 o.']);
+  const move = buildMove(model, [
+    clear([P(0, 0)]),
+    blocker(P(0, 0), 'knot', 0),
+    blocker(P(1, 0), 'tangle', 0),
+  ]);
+  assert.equal(move.total, CLEAR_MS + BLOCKER_MS);
+  assert.deepEqual(cellsOfMove(move), ['1,0']);
+  // a created special may already be standing on the knot's cell when its step arrives
+  const withSpecial = buildMove(modelOf(['oK o. o.']), [
+    clear(
+      [P(0, 0), P(1, 0), P(2, 0)],
+      [{ pos: P(0, 0), piece: yarn('olive', { special: 'puff' }) }],
+    ),
+    blocker(P(0, 0), 'knot', 0),
+  ]);
+  assert.equal(withSpecial.total, CLEAR_MS);
+  assert.equal(withSpecial.cells.size, 0);
+  assert.throws(
+    () => buildMove(modelOf(['oK']), [blocker(P(0, 0), 'knot', 0)]),
+    /knotted ball is still there/,
+  );
+});
+
+test('freeing a buried button clears the tangle and pops the button away', () => {
+  const move = buildMove(modelOf(['x1']), [blocker(P(0, 0), 'tangle', 0, { buried: true })]);
+  const track = move.cells.get('0,0');
+  assert.equal(track.initial.button, 1);
+  assert.deepEqual(track.button, [{ at: 0, duration: BLOCKER_MS, to: 0, easing: 'in' }]);
+  assert.equal(track.scale.length, 2);
+  assert.equal(move.model.tangle[0][0], 0);
+  assert.equal(move.model.buried[0][0], false);
+});
+
+test('a blocker step that disagrees with the cell it names is a broken stream', () => {
+  assert.throws(() => buildMove(modelOf(['#2']), [blocker(P(0, 0), 'tangle', 0)]), /layers/);
+  assert.throws(() => buildMove(modelOf(['o.']), [blocker(P(0, 0), 'moth', 0)]), /holds no moth/);
+  assert.throws(() => buildMove(modelOf(['o.']), [blocker(P(0, 0), 'stitch', 0)]), /layers/);
+  assert.throws(() => buildMove(modelOf(['#1']), [blocker(P(0, 0), 'yarn', 0)]), /unknown blocker/);
+});
+
+test('blocker steps in two cascades open two windows on the same cell', () => {
+  const move = buildMove(modelOf(['#2 o.']), [
+    blocker(P(0, 0), 'tangle', 1),
+    { type: 'fall', moves: [] },
+    clear([], [], 2),
+    blocker(P(0, 0), 'tangle', 0),
+  ]);
+  assert.deepEqual(move.cells.get('0,0').layers, [
+    { at: 0, duration: BLOCKER_MS, to: 1, easing: 'linear' },
+    { at: BLOCKER_MS + FALL_MS + CLEAR_MS, duration: BLOCKER_MS, to: 0, easing: 'linear' },
+  ]);
+  assert.equal(move.total, 2 * BLOCKER_MS + FALL_MS + CLEAR_MS);
+});
+
+test('a moth spread ghosts the ball it eats, grows a new moth and leans the old one in', () => {
+  const move = buildMove(modelOf(['@. o.']), [{ type: 'mothSpread', from: P(0, 0), to: P(1, 0) }]);
+  assert.equal(move.total, MOTH_MS);
+  assert.deepEqual(
+    move.removed.map((r) => [r.id, r.x, r.y]),
+    [[1, 1, 0]],
+  );
+  assert.deepEqual(move.tracks.get(1).scale, [{ at: 0, duration: CLEAR_MS, to: 0, easing: 'in' }]);
+  const arrived = move.cells.get('1,0');
+  assert.equal(arrived.initial.moth, 0);
+  assert.deepEqual(arrived.moth, [{ at: 0, duration: MOTH_MS, to: 1, easing: 'outBack' }]);
+  assert.deepEqual(move.cells.get('0,0').x, [
+    { at: 0, duration: MOTH_MS / 2, to: MOTH_LUNGE, easing: 'out' },
+    { at: MOTH_MS / 2, duration: MOTH_MS / 2, to: 0, easing: 'outBack' },
+  ]);
+  assert.equal(move.model.moth[0][0], true);
+  assert.equal(move.model.moth[0][1], true);
+  assert.equal(move.model.grid[0][1], null);
+  // vertically it leans down the other axis
+  const down = buildMove(modelOf(['@.', 'o.']), [
+    { type: 'mothSpread', from: P(0, 0), to: P(0, 1) },
+  ]);
+  assert.equal(down.cells.get('0,0').y[0].to, MOTH_LUNGE);
+  assert.deepEqual(down.cells.get('0,0').x, []);
+});
+
+test('a moth spread from nothing, onto the wrong thing or across the board is a broken stream', () => {
+  const spread = (rows, from, to) => () =>
+    buildMove(modelOf(rows), [{ type: 'mothSpread', from, to }]);
+  assert.throws(spread(['o. o.'], P(0, 0), P(1, 0)), /with no moth/);
+  assert.throws(spread(['@. oP'], P(0, 0), P(1, 0)), /no plain yarn ball/);
+  assert.throws(spread(['@. oK'], P(0, 0), P(1, 0)), /no plain yarn ball/);
+  assert.throws(spread(['@. *.'], P(0, 0), P(1, 0)), /no plain yarn ball/);
+  assert.throws(spread(['@. o. o.'], P(0, 0), P(2, 0)), /not adjacent/);
+});
+
+test('a moth spread waits for the fall before it', () => {
+  const move = buildMove(modelOf(['o. o.', '@. __']), [
+    { type: 'fall', moves: [{ from: P(1, 0), to: P(1, 1) }] },
+    { type: 'mothSpread', from: P(0, 1), to: P(1, 1) },
+  ]);
+  assert.equal(move.total, FALL_MS + MOTH_MS);
+  assert.equal(move.tracks.get(2).scale[0].at, FALL_MS);
+});
+
+test('a bead exit drops the bead off the bottom edge and leaves it as a ghost', () => {
+  const model = modelOf(['o.', '*.']);
+  const move = buildMove(model, [{ type: 'beadExit', pos: P(0, 1), points: 2000 }]);
+  assert.equal(move.total, BEAD_EXIT_MS);
+  assert.deepEqual(move.tracks.get(2).y, [
+    { at: 0, duration: BEAD_EXIT_MS, to: 2 + BEAD_EXIT_DROP, easing: 'in' },
+  ]);
+  assert.deepEqual(move.tracks.get(2).scale, []);
+  assert.deepEqual(
+    move.removed.map((r) => r.id),
+    [2],
+  );
+  assert.equal(move.model.grid[1][0], null);
+  assert.throws(
+    () => buildMove(modelOf(['o.']), [{ type: 'beadExit', pos: P(0, 0), points: 2000 }]),
+    /holds no bead/,
+  );
+});
+
+test('beads leaving together share one window, and one at the top of a cascade waits for the fall', () => {
+  const together = buildMove(modelOf(['*. *.']), [
+    { type: 'beadExit', pos: P(0, 0), points: 2000 },
+    { type: 'beadExit', pos: P(1, 0), points: 2000 },
+  ]);
+  assert.equal(together.total, BEAD_EXIT_MS);
+  assert.equal(together.tracks.get(1).y[0].at, 0);
+  assert.equal(together.tracks.get(2).y[0].at, 0);
+  const afterFall = buildMove(modelOf(['*.', '__']), [
+    { type: 'fall', moves: [{ from: P(0, 0), to: P(0, 1) }] },
+    { type: 'beadExit', pos: P(0, 1), points: 2000 },
+  ]);
+  assert.equal(afterFall.total, FALL_MS + BEAD_EXIT_MS);
+  assert.equal(afterFall.tracks.get(1).y[1].at, FALL_MS);
+});
+
+test('yarn over pops its specials in one after another, then the blasts play as usual', () => {
+  const model = modelOf(['o. m. b.']);
+  const yarnOverStep = {
+    type: 'yarnOver',
+    specials: [
+      { pos: P(0, 0), piece: yarn('olive', { special: 'puff' }) },
+      { pos: P(2, 0), piece: yarn('blush', { special: 'bobble' }) },
+    ],
+    coins: 40,
+    moves: 2,
+  };
+  const move = buildMove(model, [
+    yarnOverStep,
+    {
+      type: 'blast',
+      pos: P(0, 0),
+      special: 'puff',
+      radius: 1,
+      orientation: null,
+      cells: [P(0, 0), P(1, 0)],
+      cascade: 1,
+      points: 0,
+      combo: false,
+    },
+  ]);
+  assert.deepEqual(move.yarnOver, { at: 0, coins: 40, moves: 2, specials: 2 });
+  assert.equal(move.mounts.length, 2);
+  // it pops in first, then the blast it fires takes it: the pulse and fade come after
+  assert.deepEqual(move.tracks.get(move.mounts[0]).scale[0], {
+    at: 0,
+    duration: CREATE_MS,
+    to: 1,
+    easing: 'outBack',
+  });
+  assert.equal(move.tracks.get(move.mounts[1]).scale[0].at, YARN_OVER_PLACE_MS - CREATE_MS);
+  assert.equal(move.total, YARN_OVER_PLACE_MS + BLAST_MS.puff);
+  // one special is its own window, and none at all costs nothing
+  const one = buildMove(modelOf(['o.']), [
+    { ...yarnOverStep, specials: [yarnOverStep.specials[0]] },
+  ]);
+  assert.equal(one.total, CREATE_MS);
+  const none = buildMove(modelOf(['o.']), [{ ...yarnOverStep, specials: [], coins: 0, moves: 0 }]);
+  assert.equal(none.total, 0);
+  assert.deepEqual(none.yarnOver, { at: 0, coins: 0, moves: 0, specials: 0 });
+  assert.equal(buildMove(modelOf(['o.']), []).yarnOver, null);
+});
+
+test('yarn over onto anything but a plain ball of the same colour is a broken stream', () => {
+  const over = (rows, specials) => () =>
+    buildMove(modelOf(rows), [{ type: 'yarnOver', specials, coins: 0, moves: 0 }]);
+  const puff = (color) => yarn(color, { special: 'puff' });
+  assert.throws(over(['oK'], [{ pos: P(0, 0), piece: puff('olive') }]), /no plain yarn ball/);
+  assert.throws(over(['oP'], [{ pos: P(0, 0), piece: puff('olive') }]), /no plain yarn ball/);
+  assert.throws(over(['__'], [{ pos: P(0, 0), piece: puff('olive') }]), /holds no piece/);
+  assert.throws(over(['o.'], [{ pos: P(0, 0), piece: puff('rust') }]), /riding the same ball/);
+  assert.throws(over(['o.'], [{ pos: P(0, 0), piece: yarn('olive') }]), /riding the same ball/);
+  assert.throws(
+    over(
+      ['o. m.'],
+      [
+        { pos: P(0, 0), piece: puff('olive') },
+        { pos: P(0, 0), piece: puff('olive') },
+      ],
+    ),
+    /twice/,
+  );
+});
+
+test('a cell whose layer moved is never quiet, even under a piece that sat still', () => {
+  const model = stitchModel(['o. o.'], ['1 .']);
+  const move = buildMove(model, [blocker(P(0, 0), 'stitch', 0)]);
+  const quiet = quietCells(model, move);
+  assert.ok(quiet.has('1,0'));
+  assert.ok(!quiet.has('0,0'));
 });

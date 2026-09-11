@@ -40,6 +40,13 @@ test('a swipe off the board, into a hole or into an empty cell has no target', (
   assert.deepEqual(swipeTarget(model, { x: 1, y: 0 }, 'right'), { x: 2, y: 0 });
 });
 
+test('a swipe into a knot, a tangle or a moth has no target either', () => {
+  const model = buildModel(parseBoard(['o. oK', '#1 @.']));
+  assert.equal(swipeTarget(model, { x: 0, y: 0 }, 'right'), null); // a knot cannot move
+  assert.equal(swipeTarget(model, { x: 0, y: 0 }, 'down'), null); // a tangle
+  assert.equal(swipeTarget(model, { x: 1, y: 0 }, 'down'), null); // a moth
+});
+
 test('the gesture helpers carry the worklet directive', () => {
   for (const fn of [swipeDirection, neighbor]) {
     assert.ok(fn.toString().includes("'worklet'"), fn.name);

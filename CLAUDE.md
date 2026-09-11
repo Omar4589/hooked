@@ -41,7 +41,11 @@ The public name is **Yarn Over**; "Hooked" is the codename for the repo, the EAS
   a `node --test` test; anything a gesture or an animated style calls runs on
   the UI thread, so it carries a `'worklet'` directive.
 - Levels are JSON in `packages/levels` and follow `docs/DESIGN.md §10`.
-  Never hardcode a level in code.
+  Never hardcode a level in code: the app asks `@hooked/levels` for them
+  (`listLevels`, `listDevLevels`, `loadLevel`), and a new level is one JSON
+  file plus one static import line in `packages/levels/src/registry.js`.
+  Boards under `levels/dev/` are development only and never ship in the
+  play sequence.
 - Names are fixed: colors `olive, mustard, blush, rust, lavender, cocoa`;
   specials `puff, bobble, popcorn, yarnbomb, hook`; piece kinds `yarn, frog, bead`; goals
   `stitch, collect, beads, clear, buried`; blockers `tangle, knot, moth`.

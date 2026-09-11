@@ -1,12 +1,18 @@
 // buildMove: one engine step stream in, the whole move's timeline out. It walks the steps
 // exactly as applySteps does (packages/engine/src/replay.js) — that function is the contract
 // for the phone's step player — and records, for every piece it touches, what that piece does
-// and when. Nothing here knows about React or Reanimated: the result is numbers.
+// and when — and, for every cell whose layers change, what that cell shows and when. Nothing
+// here knows about React or Reanimated: the result is numbers.
 
 import { buildModel, cloneModel } from './model.js';
 import {
+  BEAD_EXIT_DROP,
+  BEAD_EXIT_MS,
   BLAST_MS,
   BLAST_SHAKE,
+  BLOCKER_MS,
+  BLOCKER_SHAKE,
+  CELL_POP_SCALE,
   CLEAR_MS,
   CREATE_MS,
   FALL_MS,
@@ -14,6 +20,8 @@ import {
   ILLEGAL_OUT_MS,
   ILLEGAL_SLIDE,
   METER_DROP_MS,
+  MOTH_LUNGE,
+  MOTH_MS,
   POP_MS,
   PULSE_SCALE,
   PULSE_SHARE,
@@ -21,10 +29,12 @@ import {
   SHUFFLE_IN_MS,
   SHUFFLE_OUT_MS,
   SWAP_MS,
+  YARN_OVER_PLACE_MS,
 } from './timings.js';
 
 /** @typedef {import('./model.js').Model} Model */
 /** @typedef {import('./timings.js').Track} Track */
+/** @typedef {import('./timings.js').CellTrack} CellTrack */
 
 /**
  * @typedef {Object} Move
@@ -33,9 +43,11 @@ import {
  * @property {number[]} mounts   pieces first seen this move (spawned or created)
  * @property {{ id: number, x: number, y: number, piece: object }[]} removed  cleared pieces,
  *   captured where they died, so the board can keep drawing them until they have faded
+ * @property {Map<string, CellTrack>} cells  what each touched cell's layer does, keyed `x,y`
  * @property {{ at: number, before: Model }|null} shuffle
  * @property {{ at: number, duration: number, amplitude: number }[]} shakes  board-wide wobbles
  * @property {number|null} meter  the charge this move ended on, when it changed
+ * @property {{ at: number, coins: number, moves: number, specials: number }|null} yarnOver
  * @property {number} total      how long the move lasts, in milliseconds
  */
 
@@ -51,13 +63,19 @@ export const buildMove = (model, steps, base = 0) => {
   };
   let m = cloneModel(model);
   const tracks = new Map();
+  const cells = new Map();
   const mounts = [];
   const removed = [];
   const shakes = [];
   let meter = null;
   let shuffle = null;
+  let yarnOver = null;
   let t = 0;
   let dropped = false;
+  // Damage and bead exits come in runs: a cascade that strips four tangles is one event on
+  // screen, not four, so consecutive steps of a kind share the window the first one opened.
+  let blockerAt = null;
+  let beadExitAt = null;
 
   // Falls and spawns of one cascade start together and take the same time, so the clock only
   // advances past them when something else needs to happen.
@@ -99,6 +117,55 @@ export const buildMove = (model, steps, base = 0) => {
     tracks.set(id, track);
     return track;
   };
+  /** A cell's track, created on first touch so `initial` is what it showed at the start. */
+  const cellTrackOf = (pos) => {
+    const key = `${pos.x},${pos.y}`;
+    const existing = cells.get(key);
+    if (existing !== undefined) return existing;
+    const track = {
+      base,
+      initial: {
+        x: 0,
+        y: 0,
+        scale: 1,
+        layers: m.tangle[pos.y][pos.x],
+        moth: m.moth[pos.y][pos.x] ? 1 : 0,
+        stitch: m.stitch[pos.y][pos.x],
+        button: m.buried[pos.y][pos.x] ? 1 : 0,
+      },
+      x: [],
+      y: [],
+      scale: [],
+      layers: [],
+      moth: [],
+      stitch: [],
+      button: [],
+    };
+    cells.set(key, track);
+    return track;
+  };
+  const endOf = (segments) =>
+    segments.length === 0
+      ? -1
+      : segments[segments.length - 1].at + segments[segments.length - 1].duration;
+  /** A shove out and back, once per window: a cell hit twice still only wobbles once. */
+  const nudge = (track, axis, amount, at, ms) => {
+    if (endOf(track[axis]) > at) return;
+    track[axis].push({ at, duration: ms / 2, to: amount, easing: 'out' });
+    track[axis].push({ at: at + ms / 2, duration: ms / 2, to: 0, easing: 'outBack' });
+  };
+  const popCell = (track, at, ms) => {
+    if (endOf(track.scale) > at) return;
+    track.scale.push({ at, duration: ms / 2, to: CELL_POP_SCALE, easing: 'out' });
+    track.scale.push({ at: at + ms / 2, duration: ms / 2, to: 1, easing: 'in' });
+  };
+  /** Two layers off one cell in one window are one slide, not two. */
+  const stepTo = (segments, at, ms, to) => {
+    const last = segments[segments.length - 1];
+    if (last !== undefined && last.at === at) last.to = to;
+    else segments.push({ at, duration: ms, to, easing: 'linear' });
+  };
+
   const place = (id, pos) => {
     m.pieces.set(id, { id, x: pos.x, y: pos.y, piece: m.pieces.get(id).piece });
     m.grid[pos.y][pos.x] = id;
@@ -114,6 +181,9 @@ export const buildMove = (model, steps, base = 0) => {
   };
 
   steps.forEach((step, index) => {
+    // "Consecutive" means literally next to each other in the stream.
+    if (step.type !== 'blocker') blockerAt = null;
+    if (step.type !== 'beadExit') beadExitAt = null;
     switch (step.type) {
       case 'swap': {
         if (index !== 0) fail('a swap must be the first step of its move');
@@ -309,6 +379,146 @@ export const buildMove = (model, steps, base = 0) => {
         m = buildModel(step.board, m.nextId);
         break;
       }
+      case 'blocker': {
+        const { x, y } = step.pos;
+        at(step.pos, 'blocker cell');
+        if (step.kind === 'knot') {
+          // Credit only, and nothing to draw: the knotted ball left through the step that took
+          // it, and a special this cascade created may already be standing on its cell.
+          const id = m.grid[y][x];
+          if (id !== null && m.pieces.get(id).piece.knotted === true) {
+            fail(`knot blocker at (${x},${y}) whose knotted ball is still there`);
+          }
+          break;
+        }
+        if (blockerAt === null) {
+          settle();
+          blockerAt = t;
+          t += BLOCKER_MS;
+        }
+        const window = blockerAt;
+        const track = cellTrackOf(step.pos);
+        if (step.kind === 'tangle') {
+          if (m.tangle[y][x] !== step.layersLeft + 1) {
+            fail(`tangle at (${x},${y}) has ${m.tangle[y][x]} layers, not ${step.layersLeft + 1}`);
+          }
+          nudge(track, 'x', BLOCKER_SHAKE, window, BLOCKER_MS);
+          stepTo(track.layers, window, BLOCKER_MS, step.layersLeft);
+          m.tangle[y][x] = step.layersLeft;
+          if (step.layersLeft === 0) {
+            if (m.buried[y][x]) {
+              track.button.push({ at: window, duration: BLOCKER_MS, to: 0, easing: 'in' });
+              popCell(track, window, BLOCKER_MS);
+            }
+            m.buried[y][x] = false;
+          }
+        } else if (step.kind === 'moth') {
+          if (!m.moth[y][x]) fail(`moth blocker at (${x},${y}), which holds no moth`);
+          nudge(track, 'x', BLOCKER_SHAKE, window, BLOCKER_MS);
+          track.moth.push({ at: window, duration: BLOCKER_MS, to: 0, easing: 'in' });
+          m.moth[y][x] = false;
+        } else if (step.kind === 'stitch') {
+          if (m.stitch[y][x] !== step.layersLeft + 1) {
+            fail(`stitch at (${x},${y}) has ${m.stitch[y][x]} layers, not ${step.layersLeft + 1}`);
+          }
+          stepTo(track.stitch, window, BLOCKER_MS, step.layersLeft);
+          popCell(track, window, BLOCKER_MS);
+          m.stitch[y][x] = step.layersLeft;
+        } else {
+          fail(`unknown blocker kind '${step.kind}'`);
+        }
+        break;
+      }
+      case 'mothSpread': {
+        settle();
+        const { from, to } = step;
+        at(from, 'mothSpread from');
+        if (!m.moth[from.y][from.x]) fail(`mothSpread from (${from.x},${from.y}) with no moth`);
+        if (Math.abs(to.x - from.x) + Math.abs(to.y - from.y) !== 1) {
+          fail(`mothSpread to (${to.x},${to.y}) is not adjacent`);
+        }
+        const id = idAt(to, 'mothSpread to');
+        const eaten = m.pieces.get(id).piece;
+        if (eaten.kind !== 'yarn' || eaten.special !== undefined || eaten.knotted === true) {
+          fail(`mothSpread onto (${to.x},${to.y}), which holds no plain yarn ball`);
+        }
+        const ball = trackOf(id);
+        ball.scale.push({ at: t, duration: CLEAR_MS, to: 0, easing: 'in' });
+        ball.opacity.push({ at: t, duration: CLEAR_MS, to: 0, easing: 'linear' });
+        removed.push({ id, x: to.x, y: to.y, piece: eaten });
+        m.pieces.delete(id);
+        m.grid[to.y][to.x] = null;
+        cellTrackOf(to).moth.push({ at: t, duration: MOTH_MS, to: 1, easing: 'outBack' });
+        // the moth doing the eating leans into its meal, so it reads as one thing, not two
+        const axis = from.x === to.x ? 'y' : 'x';
+        const toward = Math.sign(to[axis] - from[axis]) * MOTH_LUNGE;
+        nudge(cellTrackOf(from), axis, toward, t, MOTH_MS);
+        m.moth[to.y][to.x] = true;
+        t += MOTH_MS;
+        break;
+      }
+      case 'beadExit': {
+        const id = idAt(step.pos, 'beadExit cell');
+        if (m.pieces.get(id).piece.kind !== 'bead') {
+          fail(`beadExit at (${step.pos.x},${step.pos.y}), which holds no bead`);
+        }
+        if (beadExitAt === null) {
+          settle();
+          beadExitAt = t;
+          t += BEAD_EXIT_MS;
+        }
+        const entry = m.pieces.get(id);
+        trackOf(id).y.push({
+          at: beadExitAt,
+          duration: BEAD_EXIT_MS,
+          to: m.height + BEAD_EXIT_DROP,
+          easing: 'in',
+        });
+        removed.push({ id, x: entry.x, y: entry.y, piece: entry.piece });
+        m.pieces.delete(id);
+        m.grid[step.pos.y][step.pos.x] = null;
+        break;
+      }
+      case 'yarnOver': {
+        // The bonus places every special at once and then fires them, so they pop in one after
+        // another inside one window. Each is a fresh piece over the ghost of the ball it
+        // replaced, the same shape a created special takes, so its letter appears when it pops
+        // rather than a second early.
+        settle();
+        const n = step.specials.length;
+        const span = n <= 1 ? CREATE_MS : YARN_OVER_PLACE_MS;
+        const seen = new Set();
+        step.specials.forEach(({ pos, piece }, i) => {
+          const key = `${pos.x},${pos.y}`;
+          if (seen.has(key)) fail(`yarnOver names (${pos.x},${pos.y}) twice`);
+          seen.add(key);
+          const id = idAt(pos, 'yarnOver cell');
+          const was = m.pieces.get(id).piece;
+          if (was.kind !== 'yarn' || was.special !== undefined || was.knotted === true) {
+            fail(`yarnOver onto (${pos.x},${pos.y}), which holds no plain yarn ball`);
+          }
+          if (piece.special === undefined || piece.color !== was.color) {
+            fail(`yarnOver at (${pos.x},${pos.y}) must place a special riding the same ball`);
+          }
+          const start = t + (n <= 1 ? 0 : ((span - CREATE_MS) * i) / (n - 1));
+          const old = trackOf(id);
+          old.scale.push({ at: start, duration: CREATE_MS, to: 0, easing: 'in' });
+          old.opacity.push({ at: start, duration: CREATE_MS, to: 0, easing: 'linear' });
+          removed.push({ id, x: pos.x, y: pos.y, piece: was });
+          m.pieces.delete(id);
+          m.grid[pos.y][pos.x] = null;
+          const fresh = mount(piece, pos, { x: pos.x, y: pos.y, scale: 0, opacity: 1 });
+          tracks.get(fresh).scale.push({
+            at: start,
+            duration: CREATE_MS,
+            to: 1,
+            easing: 'outBack',
+          });
+        });
+        yarnOver = { at: t, coins: step.coins, moves: step.moves, specials: n };
+        if (n > 0) t += span;
+        break;
+      }
       default:
         fail(`unsupported step type '${step.type}'`);
     }
@@ -318,10 +528,12 @@ export const buildMove = (model, steps, base = 0) => {
   return {
     model: m,
     tracks,
+    cells,
     mounts,
     removed,
     shakes,
     meter,
+    yarnOver,
     shuffle,
     total: shuffle === null ? t : shuffle.at + SHUFFLE_OUT_MS + SHUFFLE_IN_MS,
   };
@@ -342,6 +554,7 @@ export const quietCells = (previous, move) => {
     for (let x = 0; x < previous.width; x += 1) {
       const id = previous.grid[y][x];
       if (id === null || move.model.grid[y][x] !== id || move.tracks.has(id)) continue;
+      if (move.cells.has(`${x},${y}`)) continue; // its layer moved, even if its piece did not
       quiet.add(`${x},${y}`);
     }
   }

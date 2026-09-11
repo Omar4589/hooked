@@ -36,3 +36,12 @@ const luminance = (hex) => {
 /** The ring color that shows on a given yarn. @param {string} [color] */
 export const ringFor = (color) =>
   luminance(PALETTE[color] ?? PALETTE.cocoa) > 0.25 ? RING_DARK : RING_LIGHT;
+
+// Placeholder tokens for the cell layer (phase 4): a faint grid so holes read as gaps, the
+// tangle's stack of layers, and the stitch square before and after it is stitched. Phase 5
+// replaces all of it with the drawn tiles, so nothing here is a colour a piece uses.
+export const GRID_LINE = 'rgba(90, 62, 54, 0.12)';
+export const TANGLE_FILL = 'rgba(90, 62, 54, 0.18)';
+export const TANGLE_LINE = 'rgba(90, 62, 54, 0.6)';
+export const STITCH_LINE = 'rgba(90, 62, 54, 0.45)';
+export const STITCH_FILL = 'rgba(122, 132, 80, 0.35)';

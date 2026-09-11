@@ -81,6 +81,7 @@ const main = async () => {
     const maxMoves = args.moves === null ? Infinity : args.moves;
     let played = 0;
     let shuffles = 0;
+    const tally = { blocker: 0, beadExit: 0, mothSpread: 0 };
     let lastScore = 0;
     let reason = 'moves exhausted';
     while (game.state().status === 'playing') {
@@ -97,6 +98,8 @@ const main = async () => {
       const { steps } = game.swap(a, b);
       played += 1;
       shuffles += steps.filter((s) => s.type === 'shuffle').length;
+      for (const key of Object.keys(tally))
+        tally[key] += steps.filter((s) => s.type === key).length;
       const state = game.state();
       if (!args.quiet) {
         out(`\nmove ${played}/${level.moves}`);
@@ -108,8 +111,11 @@ const main = async () => {
       lastScore = state.score;
       if (args.delay > 0 && !args.quiet) await sleep(args.delay);
     }
-    const summary = `${renderState(game.state())} · shuffles ${shuffles}`;
-    out(`\ndone: ${reason} after ${played} moves · ${summary}`);
+    const finished = game.state();
+    if (finished.status === 'won') reason = 'fastened off';
+    else if (finished.status === 'lost') reason = 'ran out of yarn';
+    const counts = `shuffles ${shuffles} · blockers ${tally.blocker} · beads out ${tally.beadExit} · moths ${tally.mothSpread}`;
+    out(`\ndone: ${reason} after ${played} moves · ${renderState(finished)} · ${counts}`);
     return 0;
   } catch (err) {
     const label = /^level /.test(err.message) ? 'level error' : 'engine error';

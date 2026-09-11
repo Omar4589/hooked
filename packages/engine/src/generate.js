@@ -161,11 +161,15 @@ export const movablePositions = (board) => {
 export const shuffleBoard = (board, level, rng, { attempts = 200 } = {}) => {
   const positions = movablePositions(board);
   const pieces = positions.map((p) => pieceAt(board, p));
+  const original = pieces.slice();
   for (let i = 0; i < attempts; i += 1) {
     rng.shuffle(pieces);
     positions.forEach((p, k) => setPiece(board, p, pieces[k]));
     if (isPlayable(board)) return board;
   }
+  // Giving up leaves the board exactly as it was found: the caller ends the game rather than
+  // emitting a shuffle step, and the step stream still rebuilds this board exactly.
+  positions.forEach((p, k) => setPiece(board, p, original[k]));
   throw new Error(
     `level ${level.id}: cannot shuffle into a playable board after ${attempts} attempts`,
   );

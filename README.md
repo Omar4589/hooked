@@ -18,7 +18,7 @@ hooked/                      npm workspaces, one lockfile, Node 22.x
     admin/                   small React page over the admin routes (phase 7, not created)
   packages/
     engine/                  @hooked/engine — pure JS match-3 engine + Jest
-    levels/                  @hooked/levels — level JSON (loader + validation land in phase 4)
+    levels/                  @hooked/levels — level JSON, the registry, the loader and schema validation
   docs/                      DESIGN.md (the spec), PROMPTS.md, QUESTIONS.md, LEVELS-BOOK1.md, design/BRIEF.md, reference/
   Procfile                   web: npm start  → apps/api
 ```
@@ -47,6 +47,9 @@ Expo Go, swipe to swap, with the step player animating swaps, clears, falls, spa
 shuffles (`npm run test:mobile` checks its maths against the engine). Phase 3 (specials and the
 meter) is built: puffs, bobbles, popcorn and yarn bombs fire by swap, double-tap, chain and
 match, combos make one bigger blast, the frog meter fills and drops the frog, and hook levels
-sweep rows and columns. Not yet done: the level rules and HUD (phase 4), the Heroku app and
-Atlas cluster (phase 7). Phases 1–9 and their "done when" are in DESIGN.md §11; phase 0's is the setup prompt in
-docs/PROMPTS.md.
+sweep rows and columns. Phase 4 (the level rules) is built: levels load and validate through
+`@hooked/levels`, the five goals and the three blockers work, beads drop and leave, the goals
+panel and the move counter sit beside the board, and a level can be won (Yarn Over pays its
+coins) or lost. Not yet done: the art and the real HUD (phase 5), the room and Book 1 (phase 6),
+the Heroku app and Atlas cluster (phase 7). Phases 1–9 and their "done when" are in DESIGN.md
+§11; phase 0's is the setup prompt in docs/PROMPTS.md.

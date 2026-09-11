@@ -36,8 +36,25 @@
  * @typedef {{ x: number, top: number, bottom: number, cells: Pos[] }} Run
  */
 
+/**
+ * One goal as `state()` reports it (DESIGN.md §6). `total` is fixed when the level starts;
+ * `remaining` is recounted from the board for stitch and clear goals and counted down for the
+ * rest, so a multiplying moth can push a clear goal above its total.
+ * @typedef {Object} GoalState
+ * @property {GoalType} type
+ * @property {Color} [color]
+ * @property {number} [count]
+ * @property {Blocker} [blocker]
+ * @property {string} [sprite]
+ * @property {number} total
+ * @property {number} remaining
+ */
+
+/** A piece and where it was when it left the board, for the damage hook. */
+/** @typedef {{ pos: Pos, piece: Piece }} Removed */
+
 /** Bumped by hand when the step format or the game API changes shape. */
-export const ENGINE_VERSION = '0.3.0';
+export const ENGINE_VERSION = '0.4.0';
 
 /** The six yarn colors, in palette order. @type {readonly Color[]} */
 export const COLORS = Object.freeze(['olive', 'mustard', 'blush', 'rust', 'lavender', 'cocoa']);
@@ -71,6 +88,16 @@ export const METER_CHARGE = Object.freeze({ puff: 1, bobble: 2, popcorn: 3, yarn
 
 /** Added once per wave in which two or more charging specials fire (§4). */
 export const METER_MULTI_BONUS = 2;
+
+/**
+ * What a `blocker` step can be about, and the order several of them on one cell are emitted in
+ * (DESIGN.md §5). A knot is credited, not stored: the knotted ball leaves through the clear or
+ * blast that takes it, and its step changes nothing on the board.
+ */
+export const BLOCKER_STEP_KINDS = Object.freeze(['tangle', 'moth', 'knot', 'stitch']);
+
+/** What Yarn Over turns each remaining move into (DESIGN.md §6). */
+export const YARN_OVER_SPECIALS = Object.freeze(['puff', 'bobble']);
 
 /** Board size ceiling (DESIGN.md §3). */
 export const MAX_BOARD_SIZE = 9;
@@ -122,7 +149,7 @@ export const MATCH_SPECIALS = Object.freeze({
 /** Pieces a level's `presets` may place (DESIGN.md §10). */
 export const PRESET_PIECES = Object.freeze([...SPECIALS, 'frog']);
 
-/** Every step type in DESIGN.md §11; phase 1 emits swap, clear, fall, spawn and shuffle. */
+/** Every step type in DESIGN.md §11; all thirteen are live from phase 4. */
 export const STEP_TYPES = Object.freeze([
   'swap',
   'clear',

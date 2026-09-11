@@ -2,26 +2,28 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { COLORS, ENGINE_VERSION } from '@hooked/engine';
-import { listLevels } from '@hooked/levels';
+import { listDevLevels, listLevels } from '@hooked/levels';
 import { PALETTE, CREAM } from '../art/palette';
 import { navigate } from '../nav';
-import { newSeed } from '../game/sandbox';
+import { newSeed } from '../game/seed';
 import { API_BASE_URL } from '../config';
 
-// Phase 0 hello world, now with a way into the phase-2 board. Proves the app boots on a phone,
-// resolves the workspace packages through Metro, and draws the six placeholder yarn balls in
-// landscape. The Room replaces it as the home screen in phase 6.
+// Phase 0 hello world, now with a way into every level the loader knows. Proves the app boots
+// on a phone, resolves the workspace packages through Metro, and draws the six placeholder yarn
+// balls in landscape. The development boards are listed in development only; the Room replaces
+// this screen as the home screen in phase 6.
 const HomeScreen = () => {
   const insets = useSafeAreaInsets();
-  const onPlay = (board) => () => {
+  const levels = [...listLevels(), ...(__DEV__ ? listDevLevels() : [])];
+  const onPlay = (levelId) => () => {
     const seed = newSeed();
-    console.log(`[play] ${board} board, seed ${seed}`);
-    navigate('Play', { seed, board });
+    console.log(`[play] level ${levelId}, seed ${seed}`);
+    navigate('Play', { levelId, seed });
   };
   return (
     <View style={[styles.screen, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <Text style={styles.title}>Yarn Over</Text>
-      <Text style={styles.subtitle}>A crochet match-3 · phase 3</Text>
+      <Text style={styles.subtitle}>A crochet match-3 · phase 4</Text>
       <View style={styles.palette}>
         {COLORS.map((color) => (
           <View
@@ -32,20 +34,16 @@ const HomeScreen = () => {
         ))}
       </View>
       <View style={styles.playRow}>
-        <Pressable
-          onPress={onPlay('frog')}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.play, pressed && styles.playPressed]}
-        >
-          <Text style={styles.playText}>Play</Text>
-        </Pressable>
-        <Pressable
-          onPress={onPlay('hook')}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.play, styles.playHook, pressed && styles.playPressed]}
-        >
-          <Text style={styles.playText}>Play hook</Text>
-        </Pressable>
+        {levels.map((level) => (
+          <Pressable
+            key={level.id}
+            onPress={onPlay(level.id)}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.play, pressed && styles.playPressed]}
+          >
+            <Text style={styles.playText}>{level.name}</Text>
+          </Pressable>
+        ))}
       </View>
       <Text style={styles.meta}>
         engine {ENGINE_VERSION} · {listLevels().length} levels · app {Constants.expoConfig?.version}
@@ -76,16 +74,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  playRow: { flexDirection: 'row', gap: 12 },
+  playRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 },
   play: {
     paddingVertical: 10,
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     borderRadius: 22,
     backgroundColor: PALETTE.rust,
   },
-  playHook: { backgroundColor: PALETTE.lavender },
   playPressed: { opacity: 0.8 },
-  playText: { color: CREAM, fontSize: 18, fontWeight: '700' },
+  playText: { color: CREAM, fontSize: 16, fontWeight: '700' },
   meta: { fontSize: 12, color: PALETTE.cocoa, opacity: 0.6 },
 });
 

@@ -6,6 +6,7 @@ import { isDeadBoard, listValidMoves, canSwap, wouldMatch } from '../src/moves.j
 import { movablePositions } from '../src/generate.js';
 import { pieceAt, cloneBoard } from '../src/board.js';
 import { parseBoard } from '../src/text.js';
+import { normalizeLevel } from '../src/level.js';
 import { loadFixture, seeds } from './helpers/fixtures.js';
 
 const P = (x, y) => ({ x, y });
@@ -36,7 +37,7 @@ test('state() has the documented shape and is a fresh snapshot', () => {
   expect(s.score).toBe(0);
   expect(s.coins).toBe(100);
   expect(s.meter).toEqual({ kind: 'none' });
-  expect(s.goals).toEqual([{ type: 'stitch' }]);
+  expect(s.goals).toEqual([{ type: 'stitch', total: 21, remaining: 21 }]);
   expect(s.status).toBe('playing');
   expect(s.level).toEqual({ id: 9001, name: 'Coaster (olive)' });
   expect(s.board.cells[0][0]).toEqual({ open: false });
@@ -52,8 +53,8 @@ test('state() has the documented shape and is a fresh snapshot', () => {
   const withMeter = createGame(loadFixture('blockers-mix'), 1).state();
   expect(withMeter.meter).toEqual({ kind: 'frog', charge: 0, full: 10 });
   expect(withMeter.goals).toEqual([
-    { type: 'clear', blocker: 'tangle' },
-    { type: 'beads', count: 2 },
+    { type: 'clear', blocker: 'tangle', total: 3, remaining: 3 },
+    { type: 'beads', count: 2, total: 2, remaining: 2 },
   ]);
 });
 
@@ -122,7 +123,7 @@ test('steps never alias the live board', () => {
   }
 });
 
-test('a tap on a plain ball does nothing and costs nothing; useBooster still waits for phase 4', () => {
+test('a tap on a plain ball does nothing and costs nothing; useBooster still waits for phase 6', () => {
   const game = createGame(loadFixture('coaster-5x5'), 1);
   const before = game.state();
   expect(game.tap(P(2, 2))).toEqual({ steps: [] });
@@ -130,7 +131,7 @@ test('a tap on a plain ball does nothing and costs nothing; useBooster still wai
   expect(game.state().board).toStrictEqual(before.board);
   expect(() => game.tap({ x: 1.5, y: 1 })).toThrow(/tap: pos must be an integer/);
   expect(() => game.tap(P(99, 1))).toThrow(/tap: pos \(99,1\) is off the board/);
-  expect(() => game.useBooster('scissors', P(1, 1))).toThrow(/phase 4/);
+  expect(() => game.useBooster('scissors', P(1, 1))).toThrow(/phase 6/);
 });
 
 test('validMoves returns fresh objects matching the board', () => {
@@ -326,8 +327,11 @@ test('a double-tap fires a special in place and spends a move', () => {
   expect(pieceAt(before.board, P(6, 0)).special).toBe('puff');
   const { steps } = game.tap(P(6, 0));
   const after = game.state();
-  expect(steps[0]).toMatchObject({ type: 'blast', special: 'puff', pos: P(6, 0) });
-  expect(steps[0].cells.map((c) => `${c.x},${c.y}`)).toContain('6,0');
+  // the bead at (5,6) starts on its exit, so it leaves before anything else this cascade (§6)
+  expect(steps[0]).toEqual({ type: 'beadExit', pos: P(5, 6), points: 2000 });
+  expect(after.goals[1]).toEqual({ type: 'beads', count: 2, total: 2, remaining: 1 });
+  expect(steps[1]).toMatchObject({ type: 'blast', special: 'puff', pos: P(6, 0) });
+  expect(steps[1].cells.map((c) => `${c.x},${c.y}`)).toContain('6,0');
   expect(after.moves).toBe(before.moves - 1);
   expect(applySteps(before.board, steps)).toStrictEqual(after.board);
 });
@@ -412,4 +416,177 @@ test('a board with a special on it is never dead, so it is never shuffled away',
   expect(isDeadBoard(parseBoard(['oY m.', 'm. o.']))).toBe(false); // the yarn bomb is a move
   expect(isDeadBoard(parseBoard(['F. m.', 'm. o.']))).toBe(false); // so is the frog
   expect(isDeadBoard(parseBoard(['o. m.', 'm. o.']))).toBe(true);
+});
+
+/** A small open board with one goal, for the win path. */
+const winnable = (moves, goal) => ({
+  id: 9997,
+  name: 'fastened off',
+  moves,
+  colors: ['olive', 'mustard', 'blush', 'rust'],
+  meter: 'none',
+  cells: ['ooooo', 'ooooo', 'ooooo', 'ooooo', 'ooooo'],
+  goals: [goal],
+  coins: 100,
+});
+
+/** The first seed whose opening move meets the goal, so the test is not at the mercy of one. */
+const seedThatWins = (level) => {
+  for (let seed = 1; seed < 200; seed += 1) {
+    const probe = createGame(level, seed);
+    const [a, b] = probe.validMoves()[0];
+    probe.swap(a, b);
+    if (probe.state().status === 'won') return seed;
+  }
+  return null;
+};
+
+test('winning pays 20 coins a move, turns every one left into a special, and fires them', () => {
+  const level = winnable(10, { type: 'collect', color: 'olive', count: 1 });
+  const seed = seedThatWins(level);
+  expect(seed).not.toBeNull();
+  const game = createGame(level, seed);
+  const before = game.state();
+  const [a, b] = game.validMoves()[0];
+  const { steps } = game.swap(a, b);
+  const after = game.state();
+  expect(after.status).toBe('won');
+  expect(after.moves).toBe(0);
+  expect(after.goals.every((g) => g.remaining === 0)).toBe(true);
+  const bonus = steps.filter((s) => s.type === 'yarnOver');
+  expect(bonus).toHaveLength(1);
+  expect(bonus[0].moves).toBe(before.moves - 1);
+  expect(bonus[0].coins).toBe(20 * bonus[0].moves);
+  expect(after.coins).toBe(level.coins + bonus[0].coins);
+  // every special rides a ball of the colour it replaced, and they go off after the banner
+  for (const { pos, piece } of bonus[0].specials) {
+    expect(['puff', 'bobble']).toContain(piece.special);
+    expect(piece.kind).toBe('yarn');
+    expect(pieceAt(before.board, pos)).toBeDefined();
+  }
+  const tail = steps.slice(steps.indexOf(bonus[0]) + 1);
+  expect(tail.filter((s) => s.type === 'blast').length).toBeGreaterThan(0);
+  expect(applySteps(before.board, steps)).toStrictEqual(after.board);
+  // the game is over: nothing more happens, whatever the player does
+  expect(game.swap(a, b)).toEqual({ steps: [] });
+  expect(game.tap(a)).toEqual({ steps: [] });
+  expect(game.state()).toStrictEqual(after);
+});
+
+test('winning on the last move beats losing, and pays nothing extra', () => {
+  const level = winnable(1, { type: 'collect', color: 'olive', count: 1 });
+  const seed = seedThatWins(level);
+  expect(seed).not.toBeNull();
+  const game = createGame(level, seed);
+  const { steps } = game.swap(...game.validMoves()[0]);
+  expect(game.state().status).toBe('won');
+  expect(game.state().coins).toBe(100);
+  expect(steps.filter((s) => s.type === 'yarnOver')).toEqual([
+    { type: 'yarnOver', specials: [], coins: 0, moves: 0 },
+  ]);
+});
+
+test('a level with no goals is never won: it just runs out of moves', () => {
+  const level = { ...winnable(3, { type: 'stitch' }), goals: [] };
+  const game = createGame(level, 3);
+  const bot = createRng('no-goals');
+  while (game.state().status === 'playing') {
+    const moves = game.validMoves({ specials: true });
+    expect(moves.length).toBeGreaterThan(0);
+    game.swap(...bot.pick(moves));
+  }
+  expect(game.state().status).toBe('lost');
+  expect(game.state().moves).toBe(0);
+});
+
+test('a board no shuffle can save ends the level rather than throwing', () => {
+  // one row, no spawner: the first match empties three cells for good and strands the last ball
+  const level = {
+    id: 9996,
+    name: 'stranded',
+    moves: 5,
+    colors: ['olive', 'mustard'],
+    meter: 'none',
+    cells: ['oooo'],
+    spawners: [],
+    goals: [{ type: 'collect', color: 'olive', count: 99 }],
+    coins: 0,
+  };
+  let ended = null;
+  for (let seed = 1; seed < 50 && ended === null; seed += 1) {
+    const game = createGame(level, `stranded/${seed}`);
+    const before = game.state();
+    const { steps } = game.swap(...game.validMoves()[0]);
+    const after = game.state();
+    if (after.status !== 'lost') continue;
+    ended = { before, after, steps };
+  }
+  expect(ended).not.toBeNull();
+  expect(ended.after.moves).toBeGreaterThan(0); // lost with moves in hand, not by running out
+  expect(ended.steps.some((s) => s.type === 'shuffle')).toBe(false);
+  expect(isDeadBoard(ended.after.board)).toBe(true);
+  // the failed shuffle left the board alone, so the stream still describes it exactly
+  expect(applySteps(ended.before.board, ended.steps)).toStrictEqual(ended.after.board);
+});
+
+test('a moth multiplies on a move that cleared none, eating a plain ball beside it', () => {
+  let spread = null;
+  let cleared = null;
+  for (const seed of seeds(20)) {
+    const game = createGame(loadFixture('blockers-mix'), `moth/${seed}`);
+    const before = game.state().board;
+    const { steps } = game.swap(...game.validMoves()[0]);
+    const after = game.state().board;
+    const spreads = steps.filter((s) => s.type === 'mothSpread');
+    const kills = steps.filter((s) => s.type === 'blocker' && s.kind === 'moth');
+    if (spreads.length > 0 && spread === null) spread = { step: spreads[0], before, after };
+    if (kills.length > 0 && cleared === null) cleared = { steps, spreads };
+    if (spread !== null && cleared !== null) break;
+  }
+  expect(spread).not.toBeNull();
+  const { step, before, after } = spread;
+  expect(pieceAt(before, step.from)).toBeUndefined();
+  expect(before.cells[step.from.y][step.from.x].moth).toBe(true);
+  // the old moth stays and the new one takes the ball's cell
+  expect(after.cells[step.from.y][step.from.x].moth).toBe(true);
+  expect(after.cells[step.to.y][step.to.x]).toEqual({ open: true, moth: true });
+  expect(Math.abs(step.to.x - step.from.x) + Math.abs(step.to.y - step.from.y)).toBe(1);
+  // a move that cleared a moth never spreads one
+  expect(cleared).not.toBeNull();
+  expect(cleared.spreads).toEqual([]);
+});
+
+test('beads drop on the schedule, from a spawner, and leave through an exit', () => {
+  const spawnedOn = [];
+  const exited = [];
+  for (const seed of seeds(10)) {
+    const level = normalizeLevel(loadFixture('beads-stitch-5x7'));
+    const game = createGame(loadFixture('beads-stitch-5x7'), `beads/${seed}`);
+    const bot = createRng(`beads-bot/${seed}`);
+    const spawners = new Set(level.spawners.map((p) => `${p.x},${p.y}`));
+    const exits = new Set(level.exits.map((p) => `${p.x},${p.y}`));
+    let spent = 0;
+    while (game.state().status === 'playing') {
+      const moves = game.validMoves({ specials: true });
+      if (moves.length === 0) break;
+      const { steps } = game.swap(...bot.pick(moves));
+      spent += 1;
+      for (const s of steps.filter((x) => x.type === 'spawn')) {
+        for (const c of s.cells) {
+          if (c.piece.kind !== 'bead') continue;
+          expect(spawners.has(`${c.pos.x},${c.pos.y}`)).toBe(true);
+          expect(spent % 3).toBe(0); // beads.spawnEvery
+          spawnedOn.push(spent);
+        }
+      }
+      for (const s of steps.filter((x) => x.type === 'beadExit')) {
+        expect(exits.has(`${s.pos.x},${s.pos.y}`)).toBe(true);
+        exited.push(s.pos);
+      }
+    }
+    // the level ships one bead and schedules two more, and never more than that
+    expect(spawnedOn.length).toBeLessThanOrEqual(2 * (seed + 1));
+  }
+  expect(spawnedOn.length).toBeGreaterThan(0);
+  expect(exited.length).toBeGreaterThan(0);
 });

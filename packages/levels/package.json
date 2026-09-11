@@ -1,13 +1,12 @@
 {
   "name": "@hooked/levels",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Hooked level files (JSON); loader and schema validation arrive in phase 4.",
+  "description": "Hooked level files (JSON) with the registry, loader and schema validation.",
   "type": "module",
   "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.js",
-    "./levels/dev/*.json": "./levels/dev/*.json"
+    ".": "./src/index.js"
   },
   "scripts": {
     "test": "NODE_OPTIONS=--experimental-vm-modules jest"

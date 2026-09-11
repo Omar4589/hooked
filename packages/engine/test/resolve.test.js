@@ -1,6 +1,7 @@
 import { resolveMatches } from '../src/resolve.js';
 import { columnRuns, posKey, pieceAt } from '../src/board.js';
 import { findMatches } from '../src/match.js';
+import { applyDamage } from '../src/damage.js';
 import { parseBoard, renderBoard } from '../src/text.js';
 
 const P = (x, y) => ({ x, y });
@@ -133,10 +134,74 @@ test('a constant-color refill hits the cascade bound and throws instead of loopi
   expect(() => resolveMatches(ctx, [P(1, 1)])).toThrow(/more than 100 cascades/);
 });
 
-test('the reserved damage hook runs between the clear and the fall', () => {
+test('the damage hook runs between the meter and the fall and sees what left', () => {
   const board = parseBoard(['m. b. r.', 'o. o. o.']);
   const { ctx } = contextFor(board, ['blush', 'rust', 'lavender']);
-  ctx.damage = (cleared) => [{ type: 'blocker', cells: cleared.length }];
+  const seen = [];
+  ctx.damage = (cleared, info) => {
+    seen.push(info);
+    return [{ type: 'blocker', cells: cleared.length }];
+  };
   const steps = resolveMatches(ctx, [P(1, 1)]);
   expect(steps.map((s) => s.type)).toEqual(['clear', 'blocker', 'fall', 'spawn']);
+  expect(seen).toHaveLength(1);
+  expect(seen[0].cascade).toBe(1);
+  expect(seen[0].matches.map((m) => m.cells.map(posKey))).toEqual([['0,1', '1,1', '2,1']]);
+  expect(seen[0].blasts).toEqual([]);
+  expect(seen[0].blasted).toEqual([]);
+  expect(seen[0].removed.map((r) => [posKey(r.pos), r.piece.color])).toEqual([
+    ['0,1', 'olive'],
+    ['1,1', 'olive'],
+    ['2,1', 'olive'],
+  ]);
+});
+
+test('the damage hook sees a blast area and what it took, blockers and all', () => {
+  const board = parseBoard(['o. #2 b.', 'm. oP r.', 'b. l. o.']);
+  const { ctx } = contextFor(board, ['blush', 'rust', 'lavender']);
+  const seen = [];
+  ctx.damage = (cleared, info) => {
+    seen.push(info);
+    return [];
+  };
+  resolveMatches(
+    ctx,
+    [],
+    [
+      {
+        type: 'blast',
+        pos: P(1, 1),
+        special: 'puff',
+        radius: 1,
+        orientation: null,
+        sources: ['puff'],
+        combo: false,
+      },
+    ],
+  );
+  const info = seen[0];
+  expect(info.matches).toEqual([]);
+  // the area names the tangle the plus covers, which holds no piece to take
+  expect(info.blasts.map((b) => b.area.map(posKey))).toEqual([['1,0', '0,1', '1,1', '2,1', '1,2']]);
+  expect(info.blasts[0].cells.map(posKey)).toEqual(['0,1', '1,1', '2,1', '1,2']);
+  expect(info.blasted.map(posKey)).toEqual(['0,1', '1,1', '2,1', '1,2']);
+  expect(info.removed.map((r) => posKey(r.pos))).toEqual(['0,1', '1,1', '2,1', '1,2']);
+});
+
+test('clearing a tangle opens its cell, and the same cascade refills it', () => {
+  const board = parseBoard(['#1 b. r.', 'o. o. o.']);
+  const { ctx } = contextFor(board, ['blush', 'rust', 'lavender', 'mustard', 'cocoa']);
+  ctx.damage = (cleared, info) => applyDamage(board, info);
+  const steps = resolveMatches(ctx, [P(1, 1)]);
+  expect(steps.map((s) => s.type)).toEqual(['clear', 'blocker', 'fall', 'spawn']);
+  expect(steps[1]).toEqual({
+    type: 'blocker',
+    pos: P(0, 0),
+    kind: 'tangle',
+    layersLeft: 0,
+    points: 200,
+  });
+  expect(steps[3].cells.map((c) => posKey(c.pos))).toContain('0,0');
+  expect(board.cells[0][0].tangle).toBeUndefined();
+  expect(board.cells[0][0].piece).toBeDefined();
 });

@@ -4,6 +4,8 @@ import {
   PIECE_KINDS,
   BLOCKERS,
   GOALS,
+  BLOCKER_STEP_KINDS,
+  YARN_OVER_SPECIALS,
   MAX_BOARD_SIZE,
   ENGINE_VERSION,
   SCORE,
@@ -43,9 +45,17 @@ test('the frog is a piece kind, never a special', () => {
   expect(PRESET_PIECES).toEqual([...SPECIALS, 'frog']);
 });
 
-test('engine version is 0.3.0 and the board ceiling is 9', () => {
-  expect(ENGINE_VERSION).toBe('0.3.0');
+test('engine version is 0.4.0 and the board ceiling is 9', () => {
+  expect(ENGINE_VERSION).toBe('0.4.0');
   expect(MAX_BOARD_SIZE).toBe(9);
+});
+
+test('blocker steps and Yarn Over name what phase 4 added', () => {
+  expect(BLOCKER_STEP_KINDS).toEqual(['tangle', 'moth', 'knot', 'stitch']);
+  // every blocker plus the stitch square, which is cell state under a piece rather than a blocker
+  for (const b of BLOCKERS) expect(BLOCKER_STEP_KINDS).toContain(b);
+  expect(YARN_OVER_SPECIALS).toEqual(['puff', 'bobble']);
+  for (const s of YARN_OVER_SPECIALS) expect(SPECIALS).toContain(s);
 });
 
 test('score table and cascade cap match DESIGN.md §7 and §3', () => {
@@ -108,6 +118,8 @@ test('the name lists and tables are frozen', () => {
     PIECE_KINDS,
     BLOCKERS,
     GOALS,
+    BLOCKER_STEP_KINDS,
+    YARN_OVER_SPECIALS,
     SCORE,
     METERS,
     HARD_LABELS,

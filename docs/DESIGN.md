@@ -4,6 +4,8 @@
 
 *A cozy match-3 where every level is a crochet project, and everything you make decorates your room. A tribute to one crocheter, built to ship to everyone.*
 
+> **v0.9.7 (2026-09-11, phase 4 built):** levels have rules. §11 gains "Level conventions (phase 4)": damage is per match and per blast rather than per cell, a knot is credited rather than stored, one `blocker` step per layer, a moth **multiplies** instead of crawling (owner, `docs/QUESTIONS.md` item 36), beads drop on a schedule and leave at the top of a cascade, goals are live or counted, and the end of a move runs drop → spread → won/lost/shuffle. Yarn Over places every unused move's special at once and fires them. The step list gains `points`, `buried` and `moves`; §16's `mothSpread` row follows the multiply rule; phase-2 conventions 2 and 13 are amended (a swipe from a knot, tangle or moth is ignored; win, lose and the placeholder HUD are no longer deferred). Levels now load through `@hooked/levels`.
+>
 > **v0.9.6 (2026-09-11, phase 3 built):** specials fire. The rules are recorded in §11 ("Specials conventions (phase 3)"): `blast` and `frogRip` steps take the pieces they name and carry `points`, a wave runs breadth-first after the clear, the meter charges per wave and drops one piece a move, and `game.tap` fires in place for a move. §4's blast-shape sentence and the Puff row are corrected to the decided plus-of-five and rounded square, and §16 notes that the drawn ring waits for the art in phase 5.
 >
 > **v0.9.5 (2026-09-11, phase 2 built):** the step player's rules are recorded in §11 ("Step player conventions (phase 2)"): one clock per move that every piece samples, input locked while it plays, the swipe decided at activation from the touch-down point, where spawned pieces enter, the shuffle fade, and what a ball carrying a special looks like before phase 3. §16's `clear` particles move to phase 5 and its `spawn` row follows the engine's entry rows. The board on the phone plays `packages/levels/levels/dev/sandbox-9x9.json`, a development level the loader never lists.
@@ -370,13 +372,13 @@ Steps are plain objects. The step player in the UI is one function that switches
 { type: 'frogRip', pos, color, cells, cascade, points, combo }   // the frog ripping out a color
 { type: 'meter', charge, full }              // frog (or hook) meter changed
 { type: 'meterDrop', pos, piece }            // the frog or hook lands on the board
-{ type: 'blocker', pos, kind, layersLeft }   // kind: 'tangle' | 'knot' | 'moth' | 'stitch'
+{ type: 'blocker', pos, kind, layersLeft, points, buried } // kind: 'tangle' | 'moth' | 'knot' | 'stitch'; one per layer; `buried` only on a tangle's last layer
 { type: 'fall', moves }                      // moves: [{ from, to }]
 { type: 'spawn', cells }                     // cells: [{ pos, piece }]
 { type: 'mothSpread', from, to }
-{ type: 'beadExit', pos }
+{ type: 'beadExit', pos, points }
 { type: 'shuffle', board }
-{ type: 'yarnOver', specials, coins }
+{ type: 'yarnOver', specials, coins, moves }  // specials: [{ pos, piece }] placed on plain balls, then fired as ordinary steps
 ```
 
 **Resolution loop (inside `swap` / `tap`)**
@@ -451,7 +453,7 @@ hooked/                     monorepo, same tooling as canvass-app
 **Step player conventions (phase 2, decided 2026-09-11).** What `apps/mobile/src/game` does where §11 and §16 left room; same rule as above, keep them easy to change.
 
 1. One move plays at a time: `game.swap` advances the engine the moment it is called, so there is no half-played board to swap on. A swipe made during playback is remembered only when both of its cells sit out that whole move untouched, because there the board the player aimed at is exactly the board they get; it fires as soon as the move settles. A swipe aimed into the churn is let go rather than applied to whatever lands there, and the last remembered swipe wins. The board arbitrates on the JS side, so a second gesture can never start a second move. (Moves run 470 ms at the median and over a second on one in nine, so dropping every swipe during playback made a fast player's board feel dead.)
-2. A swipe is decided once, when the pan activates: the dominant axis of the travel from the touch-down point picks the neighbour (a tie reads as horizontal), and the threshold is a quarter of a cell, clamped to 10–24 pt. The touch-down point is recorded in `onBegin`, because both native pan handlers zero their translation at activation. A swipe that starts or lands off the board, on a hole or on an empty cell is ignored without calling the engine.
+2. A swipe is decided once, when the pan activates: the dominant axis of the travel from the touch-down point picks the neighbour (a tie reads as horizontal), and the threshold is a quarter of a cell, clamped to 10–24 pt. The touch-down point is recorded in `onBegin`, because both native pan handlers zero their translation at activation. A swipe that starts or lands off the board, on a hole, on an empty cell, on a blocker or on a knotted ball is ignored without calling the engine (the client's `inPlay` mirrors the engine's `canSwap`, so nothing that cannot move ever slides).
 3. A move is one absolute timeline. `buildMove` turns the step stream into a track per piece (segments of `at`, `duration`, `to`, easing, in grid units), the board runs one linear clock from `base` to `base + total`, and every piece samples its track against that clock on the UI thread. Pieces in a column therefore share one instant and a stack cannot drift apart, and the whole timeline is testable in node without a device.
 4. Timings follow §16: swap 150 (illegal 2×120, sliding a full cell out and back), then per cascade clear 120 with created specials popping in over the same 120, then fall and spawn together for 200, then the next cascade with no gap. Movement uses a deterministic ease-out-back rather than a spring, so every move has a known length.
 5. Spawned pieces enter from above their run: the i-th of n from row top − (n − i) when the run reaches the top edge, clipped by the board; a run fed through a hole has no room above it, so its pieces enter on the hole cell and fan out as they fall. They are invisible until their fall starts.
@@ -462,7 +464,7 @@ hooked/                     monorepo, same tooling as canvass-app
 10. The board is laid out against a measured arena view, never the window: the cell is the largest whole pixel that fits, the board is centred, and nothing is drawn until the arena has been measured. No side gutters are reserved; the phase-4 panels shrink the arena and the board re-fits.
 11. A move ends on the clock's own callback, with a JS timer as a safety net that the clock disarms; the move in flight is recorded before the engine advances, so completion happens exactly once and can never compare a stale board to the engine's.
 12. After every move the view's board is compared with the engine's. They must match cell for cell; a mismatch warns in development and rebuilds from the engine rather than playing on from a wrong picture.
-13. Deferred, with nothing in phase 2 depending on them: the ~5 s idle hint (§3), the clear particles (§16), the HUD, sounds and haptics, win and lose, and honouring Reduce Motion.
+13. Deferred, with nothing in phase 2 depending on them: the ~5 s idle hint (§3), the clear particles (§16), the real HUD and the dial, sounds and haptics, and honouring Reduce Motion. (The placeholder goals panel, the move counter and the win/lose screens arrived in phase 4.)
 
 **Specials conventions (phase 3, decided 2026-09-11).** How the engine fires what §4 decided, and how the step player shows it. Same rule as the lists above.
 
@@ -481,12 +483,70 @@ hooked/                     monorepo, same tooling as canvass-app
 13. On screen a firing is one window (§16's duration for its size): the special swells, then the balls pop one ring at a time outward from it, the furthest landing as the window closes, and the whole board shakes harder for a bigger blast. A firing with no cells shows nothing and costs no time. The meter is a readout outside the board and costs the move no time at all.
 14. Until the art lands in phase 5, a ball carrying a special is its circle with a letter on it (P, B, C, Y, H) and the frog is a circle marked F; the frog meter is a row of pips under the board, not the §11 dial.
 
+**Level conventions (phase 4, decided 2026-09-11).** How the engine turns §5 and §6 into steps,
+and how the step player shows them. Same rule as the lists above: easy to change, not re-opened
+without the owner.
+
+1. Damage is per event, not per cell: a tangle or a moth loses one layer per *match* whose cells
+   touch it and one per *blast* whose area covers or touches it, so a match lying along two sides
+   of a tangle still strips one layer and two separate matches strip two. A frog rip has no area
+   and damages neither. A stitch square loses a layer when the piece standing on it leaves
+   through a clear, a blast or a rip — not when a moth eats it, and not under a meter drop or an
+   exiting bead.
+2. A knot is credited, not stored: the knotted ball leaves through the step that takes it, and
+   its `blocker` step changes nothing on the board. A special the same cascade created may
+   already be standing on that cell.
+3. One `blocker` step per layer, emitted after the `meter` and before the `fall`, row-major, then
+   by kind (tangle, moth, knot, stitch), then by layers remaining. A tangle's last layer takes
+   its buried button with it and says so with `buried: true`; a cell can never carry `buried`
+   without a tangle.
+4. A moth multiplies rather than crawls: at the end of any move that cleared no moth, one moth
+   with a plain yarn ball beside it eats it and a new moth takes that cell, the old one staying
+   put. Specials, knots, beads and the frog are safe. Two draws, or none at all.
+5. A bead is due every `beads.spawnEvery` moves until the level's `total` is accounted for. It
+   arrives in the first refill of that move, at one of the run tops about to be filled (one
+   draw, no colour draw for that cell); a due move that never refills keeps the bead owed. Beads
+   leave at the top of a cascade, before its clear, so the column above falls in the same breath.
+6. A goal's progress is live for `stitch` and `clear` — what is left is what the board still
+   shows, so a multiplying moth can push a clear goal back above its total — and counted for
+   `collect`, `beads` and `buried`, clamped at zero. A level with no goals is never won.
+7. End of a move: the meter drop, then the moth spread, then won (Yarn Over, and the moves left
+   go to zero) / out of moves (lost) / otherwise the dead-board shuffle. A board no shuffle can
+   make playable ends the level lost with no `shuffle` step, and the shuffle puts the board back
+   as it found it first, so the stream still rebuilds it exactly.
+8. Yarn Over places every special at once — one per unused move, a Puff or a Bobble riding a
+   plain ball — and then fires them one after another, found by piece identity rather than by
+   the cell they were placed on, because an earlier chain may have moved or taken one. Its coins
+   are coins, never score.
+9. The draw order per spent move is fixed: the refill's colours (with the scheduled bead's
+   spawner drawn once), the meter drop, the moth spread, then Yarn Over. A level with no moths,
+   no tangles and no beads plays exactly as it did in phase 3 until its first win.
+10. Levels reach the app only through `@hooked/levels`: a hand-maintained registry of static
+    JSON imports (Metro cannot read a filesystem), `listLevels()` for the play sequence,
+    `listDevLevels()` for the boards under `levels/dev/`, and `loadLevel(id)`, which validates.
+    The five-to-six colour range and every goal-versus-board cross-check live there, not in the
+    engine, which still accepts a two-colour test board.
+11. The view model carries the cell layer (tangle, moth, stitch, buried) and the drift check
+    compares it, so a tangle drawn with a layer it has lost is caught like a misplaced piece.
+    Cell tracks are sampled from the same move clock as the pieces, and the cells draw *under*
+    them, with no elevation or z-index anywhere on the board.
+12. A run of `blocker` steps is one 150 ms window, not one each: a cascade that strips four
+    tangles is one event on screen. A knot step costs no time at all, and beads leaving together
+    share one window.
+13. The readout updates twice per move: the move counter the moment a swipe is accepted (as in
+    Fishdom), the goals when the board settles. The end of the level is read from the engine's
+    own status, so it reports exactly once however the animation went, and a gesture buffered
+    during the last move is dropped with it.
+14. Result is a transparent modal over the board it finished, reached through `nav.js`: *Fastened
+    off!* with the score and the coins, or *Ran out of yarn.* The Continue prompt of §6 waits for
+    lives and stitch markers in phase 6.
+
 **Build order.** Each phase has a "done when" so you know when to move on.
 
 1. **Engine, no screen.** `packages/engine` as a pure JS package with Jest tests: board generation with no starting matches, match detection, swap legality, gravity and refill, cascades, scoring. Plus a small node script that plays random moves and prints the board as text. *Done when the tests pass and a text board plays itself in the terminal.* *(Built 2026-09-11: `npm run play -- packages/engine/fixtures/coaster-5x5.json`.)*
 2. **Bare board on your phone.** `apps/mobile` (Expo). Placeholder pieces (colored circles in the six palette colors), swipe to swap, the step player animating clears, falls and spawns. No backgrounds, no HUD. *Done when you can play on your own phone and it feels smooth.* *(Built 2026-09-11: Home → Play on the sandbox board; `npm run test:mobile`.)*
 3. **Specials and the meter.** Puff, Bobble, Popcorn, Yarn Bomb, the frog meter and the Hook, firing by swap, double-tap and chain, each with a big visible blast. The rules in §4 were settled by decision on 2026-09-10; no Fishdom session is needed. *Done when every row of the table in §4 works and reads clearly.* *(Built 2026-09-11.)*
-4. **Level rules.** JSON loader, the five goal types, the three blockers, the goals bar, move counter, win/lose, Yarn Over with coins. Three hand-written test levels. *Done when you can load a level file, win it, lose it, and watch stitch squares fill in.*
+4. **Level rules.** JSON loader, the five goal types, the three blockers, the goals bar, move counter, win/lose, Yarn Over with coins. Three hand-written test levels. *Done when you can load a level file, win it, lose it, and watch stitch squares fill in.* *(Built 2026-09-11: Home lists the development boards; `npm run play -- packages/levels/levels/dev/moths-7x7.json`.)*
 5. **Vertical slice: finish level 1 completely.** Art enters here. Real SVG yarn balls and specials in her palette, the level card, HUD, win screen with the project illustration, sounds, haptics. *Done when you'd hand her the phone with only this level on it.*
 6. **Book 1 and the Craft Nook end to end.** The room as home screen, the shop, placing and moving decor, beauty stars, three creatures with idle animations, projects placing themselves, save/load, lives, boosters, win streak, daily basket, Pattern Book. Author levels 1–15 per `docs/LEVELS-BOOK1.md` ("Twelve Coasters" as the finale) and tune them with bot sims. *Done when Book 1 plays start to finish, the Nook reaches 3 stars, and everything survives an app restart.*
 7. **Backend, wallet, grants and purchases.** `apps/api` (Express + MongoDB on Heroku, mirroring canvass-app), accounts, the wallet ledger with offline caching, grants, codes, the VIP flag, the admin page, Redeem Code and Delete Account in Settings, RevenueCat with marker packs, the Starter Bundle and the Yarn Bank (sandbox only), the gift popup. *Done when you can grant yourself 50 markers from the admin page and watch them arrive on your phone, redeem a code, buy a pack in sandbox, and see every event in the ledger.*
@@ -625,7 +685,7 @@ Step → animation (starting values; tune by feel):
 | `fall` | translateY to the new cell with a slight overshoot (ease-out-back; `FALL_OVERSHOOT` in the step player's `timings.js`) | 200 ms |
 | `spawn` | new pieces fall in from above their run: the i-th of n starts n − i rows above the run's top, or on the hole cell above a run fed through one | 200 ms |
 | `shuffle` | "Untangling…": the board fades out and fades back in at the snapshot's positions; a full rebuild from `board`, no per-piece movement | 400 ms |
-| `mothSpread` | moth crawls to the neighbor cell | 250 ms |
+| `mothSpread` | the moth leans into the ball beside it, which pops; a new moth grows in its place (they multiply, decided 2026-09-11) | 250 ms |
 | `beadExit` | bead drops off the bottom edge and lands on the project illustration | 250 ms |
 | `yarnOver` | specials fire one by one, coins fly to the counter, then confetti (Lottie) and the *Fastened off!* banner slides in | ~1.5 s |
 

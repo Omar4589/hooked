@@ -67,6 +67,27 @@ export const sampleTrack = (track, t) => {
 };
 
 /**
+ * What a cell shows `t` milliseconds into its move: where it is nudged to, how big it is, and
+ * how much of each layer is still drawn.
+ * @param {import('./timings.js').CellTrack} track
+ * @param {number} t
+ * @returns {{ x: number, y: number, scale: number, layers: number, moth: number,
+ *   stitch: number, button: number }}
+ */
+export const sampleCell = (track, t) => {
+  'worklet';
+  return {
+    x: sampleProp(track.x, track.initial.x, t),
+    y: sampleProp(track.y, track.initial.y, t),
+    scale: sampleProp(track.scale, track.initial.scale, t),
+    layers: sampleProp(track.layers, track.initial.layers, t),
+    moth: sampleProp(track.moth, track.initial.moth, t),
+    stitch: sampleProp(track.stitch, track.initial.stitch, t),
+    button: sampleProp(track.button, track.initial.button, t),
+  };
+};
+
+/**
  * How far the whole board is pushed sideways at time `t`, in cells. A blast wobbles the board
  * either side of centre and settles back to nothing, so the shake never moves a piece relative
  * to its neighbours and never needs a track of its own.

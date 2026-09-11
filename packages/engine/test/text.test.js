@@ -5,6 +5,7 @@ import {
   renderCell,
   describeStep,
   describeSteps,
+  describeGoal,
   renderState,
   formatPos,
 } from '../src/text.js';
@@ -102,7 +103,7 @@ test('describeStep gives one line per step type', () => {
   expect(describeStep({ type: 'fall', moves: [{}, {}] })).toBe('fall: 2 pieces');
   expect(describeStep({ type: 'spawn', cells: [{}] })).toBe('spawn: 1 pieces');
   expect(describeStep({ type: 'shuffle', board: {} })).toBe('shuffle: untangling...');
-  expect(describeStep({ type: 'yarnOver' })).toBe('yarnOver');
+  expect(describeStep({ type: 'teleport' })).toBe('teleport');
   expect(
     describeSteps([
       { type: 'fall', moves: [] },
@@ -115,7 +116,55 @@ test('renderState and formatPos', () => {
   expect(renderState({ moves: 3, score: 120, status: 'playing' })).toBe(
     'moves 3 · score 120 · playing',
   );
+  expect(
+    renderState({
+      moves: 3,
+      score: 120,
+      coins: 100,
+      goals: [
+        { type: 'stitch', total: 21, remaining: 16 },
+        { type: 'beads', total: 2, remaining: 1 },
+      ],
+      status: 'playing',
+    }),
+  ).toBe('moves 3 · score 120 · coins 100 · stitch 5/21, beads 1/2 · playing');
   expect(formatPos({ x: 4, y: 0 })).toBe('(4,0)');
+});
+
+test('describeGoal reads like the goals panel', () => {
+  expect(describeGoal({ type: 'stitch', total: 21, remaining: 16 })).toBe('stitch 5/21');
+  expect(
+    describeGoal({ type: 'collect', color: 'olive', count: 30, total: 30, remaining: 18 }),
+  ).toBe('collect olive 12/30');
+  expect(describeGoal({ type: 'clear', blocker: 'tangle', total: 3, remaining: 1 })).toBe(
+    'clear tangle 2/3',
+  );
+});
+
+test('describeStep names the blockers, the moth, the bead and the win bonus', () => {
+  const P = (x, y) => ({ x, y });
+  expect(
+    describeStep({ type: 'blocker', pos: P(3, 4), kind: 'tangle', layersLeft: 2, points: 200 }),
+  ).toBe('blocker tangle at (3,4): 2 left (+200)');
+  expect(
+    describeStep({
+      type: 'blocker',
+      pos: P(3, 4),
+      kind: 'tangle',
+      layersLeft: 0,
+      points: 200,
+      buried: true,
+    }),
+  ).toBe('blocker tangle at (3,4): 0 left, button freed (+200)');
+  expect(describeStep({ type: 'mothSpread', from: P(5, 5), to: P(5, 4) })).toBe(
+    'mothSpread (5,5)->(5,4)',
+  );
+  expect(describeStep({ type: 'beadExit', pos: P(1, 6), points: 2000 })).toBe(
+    'beadExit at (1,6) (+2000)',
+  );
+  expect(describeStep({ type: 'yarnOver', specials: [{}, {}, {}], coins: 140, moves: 7 })).toBe(
+    'yarnOver: 3 specials, +140 coins for 7 moves',
+  );
 });
 
 test('describeStep names the firings, the meter and the drop', () => {

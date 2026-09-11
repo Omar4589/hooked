@@ -144,6 +144,14 @@ test('a puff fires, takes its plus and charges the meter', () => {
   expect(out.charge).toBe(1);
   expect(renderBoard(board)).toBe('o. __ o.\n__ __ __\no. __ o.');
   expect(scored).toEqual([out.steps[0].points]);
+  // what it took, and from where: phase 4's collect goals, stitch squares and knot credit
+  expect(out.removed.map((r) => [posKey(r.pos), r.piece.color, r.piece.special])).toEqual([
+    ['1,0', 'olive', undefined],
+    ['0,1', 'olive', undefined],
+    ['1,1', 'olive', 'puff'],
+    ['2,1', 'olive', undefined],
+    ['1,2', 'olive', undefined],
+  ]);
 });
 
 test('a blast chains into the specials it takes, one wave at a time', () => {

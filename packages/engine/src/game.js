@@ -1,13 +1,14 @@
 // createGame: the engine's public entry point (DESIGN.md §11). One mutable board lives in the
 // closure; state() and every step payload are snapshots.
 
-import { METER_FULL } from './constants.js';
+import { METER_FULL, SCORE } from './constants.js';
 import { normalizeLevel } from './level.js';
 import { createRng } from './rng.js';
 import {
   columnRuns,
   posKey,
   cloneBoard,
+  findPiece,
   inBounds,
   isAdjacent,
   samePos,
@@ -16,8 +17,13 @@ import {
 import { generateBoard, shuffleBoard, pickColor } from './generate.js';
 import { clonePiece, pieceAt, setPiece } from './board.js';
 import { isDeadBoard, isLegalSwap, listValidMoves } from './moves.js';
-import { swapOrders, tapOrders } from './fire.js';
+import { orderFor, swapOrders, tapOrders } from './fire.js';
 import { dropCandidates, dropPiece, meterState } from './meter.js';
+import { applyDamage } from './damage.js';
+import { emptySpawnerTops, isBeadDue } from './beads.js';
+import { allGoalsMet, createGoals, creditRemoved, creditSteps, snapshotGoals } from './goals.js';
+import { spreadMoth } from './moth.js';
+import { placeYarnOver } from './yarnover.js';
 import { resolveMatches } from './resolve.js';
 
 /** @typedef {import('./constants.js').Pos} Pos */
@@ -26,8 +32,8 @@ import { resolveMatches } from './resolve.js';
  * @typedef {Object} Game
  * @property {() => object} state
  * @property {(a: Pos, b: Pos) => { steps: object[] }} swap
- * @property {(pos: Pos) => never} tap            phase 3
- * @property {(name: string, pos: Pos) => never} useBooster  phase 4
+ * @property {(pos: Pos) => { steps: object[] }} tap
+ * @property {(name: string, pos: Pos) => never} useBooster  phase 6
  * @property {() => [Pos, Pos][]} validMoves
  */
 
@@ -41,17 +47,47 @@ export const createGame = (levelJson, seed) => {
   const rng = createRng(seed);
   const runs = columnRuns({ width: level.width, height: level.height, cells: level.grid });
   const spawnerKeys = new Set(level.spawners.map(posKey));
+  const exitKeys = new Set(level.exits.map(posKey));
   const board = generateBoard(level, rng);
+  const goals = createGoals(level, board);
   let moves = level.moves;
   let score = 0;
   let charge = 0;
   let status = 'playing';
+  /** Yarn Over's payout, on top of the level's base coins (§7). */
+  let earned = 0;
+  /** Per-move bookkeeping: a moth only spreads on a move that cleared none (§5). */
+  let mothCleared = false;
+  /** Beads owed by the schedule but not yet dropped, and where this move's is going (§6). */
+  let beadsDue = 0;
+  let beadsSpawned = 0;
+  let beadTarget = null;
+  let beadDrawn = false;
+  /** While the win bonus fires: no drop, no spread, no scheduled bead. */
+  let yarningOver = false;
 
   const ctx = {
     board,
     runs,
     spawnerKeys,
-    spawnPiece: () => ({ kind: 'yarn', color: pickColor(level.colors, level.weights, rng) }),
+    exitKeys,
+    // The refill, with the scheduled bead folded in: the first spawn of a move that owes one
+    // picks among the run tops about to be filled, and that cell gets the bead instead of a
+    // color draw.
+    spawnPiece: (pos) => {
+      if (!beadDrawn && !yarningOver && beadsDue > 0) {
+        beadDrawn = true;
+        const tops = emptySpawnerTops(board, level.spawners);
+        if (tops.length > 0) beadTarget = rng.pick(tops);
+      }
+      if (beadTarget !== null && samePos(pos, beadTarget)) {
+        beadTarget = null;
+        beadsDue -= 1;
+        beadsSpawned += 1;
+        return { kind: 'bead' };
+      }
+      return { kind: 'yarn', color: pickColor(level.colors, level.weights, rng) };
+    },
     addScore: (points) => {
       score += points;
     },
@@ -61,15 +97,24 @@ export const createGame = (levelJson, seed) => {
       charge += n;
       return charge;
     },
+    damage: (cleared, info) => {
+      const steps = applyDamage(board, info);
+      for (const step of steps) {
+        score += step.points;
+        if (step.kind === 'moth') mothCleared = true;
+      }
+      creditRemoved(goals, info.removed);
+      return steps;
+    },
   };
 
   const state = () => ({
     board: cloneBoard(board),
     moves,
     score,
-    coins: level.coins,
+    coins: level.coins + earned,
     meter: meterState(level.meter, charge),
-    goals: level.goals.map((g) => ({ ...g })),
+    goals: snapshotGoals(goals, board),
     status,
     level: { id: level.id, name: level.name },
   });
@@ -89,9 +134,55 @@ export const createGame = (levelJson, seed) => {
     return pos;
   };
 
+  /** A legal swap or a firing tap: one move gone, and the per-move bookkeeping reset. */
+  const spendMove = () => {
+    moves -= 1;
+    mothCleared = false;
+    beadDrawn = false;
+    beadTarget = null;
+    if (isBeadDue(level.beads, level.moves - moves, beadsSpawned + beadsDue)) beadsDue += 1;
+  };
+
   /**
-   * What happens once a move's cascades have settled: a full meter drops its piece, and a board
-   * the player cannot act on is shuffled. Shared by swap and tap.
+   * The win bonus (§6): every move left over becomes a Puff or a Bobble, and they go off one
+   * after another, chaining into whatever they catch. A special an earlier chain already took is
+   * skipped; one that fell somewhere else fires from where it landed, which is why they are
+   * found by identity rather than by the cell they were placed on.
+   * @returns {object[]}
+   */
+  const runYarnOver = () => {
+    const spent = moves;
+    moves = 0;
+    const coins = SCORE.coinsPerMove * spent;
+    earned += coins;
+    const placed = placeYarnOver(board, rng, spent);
+    const steps = [
+      {
+        type: 'yarnOver',
+        specials: placed.map(({ pos, piece }) => ({
+          pos: { x: pos.x, y: pos.y },
+          piece: clonePiece(piece),
+        })),
+        coins,
+        moves: spent,
+      },
+    ];
+    yarningOver = true;
+    for (const { piece } of placed) {
+      const pos = findPiece(board, piece);
+      if (pos === null) continue;
+      const fired = resolveMatches(ctx, [], [orderFor(board, pos, piece)]);
+      creditSteps(goals, fired);
+      steps.push(...fired);
+    }
+    yarningOver = false;
+    return steps;
+  };
+
+  /**
+   * What happens once a move's cascades have settled (DESIGN.md §11 "Resolution loop"): the
+   * meter drops its piece, a moth spreads unless one was cleared, then the level is won, lost,
+   * or shuffled because the player cannot act. Shared by swap and tap.
    * @returns {object[]}
    */
   const finishMove = () => {
@@ -106,9 +197,24 @@ export const createGame = (levelJson, seed) => {
         steps.push({ type: 'meterDrop', pos: { x: pos.x, y: pos.y }, piece: clonePiece(piece) });
       }
     }
-    if (moves > 0 && isDeadBoard(board)) {
-      shuffleBoard(board, level, rng);
-      steps.push({ type: 'shuffle', board: cloneBoard(board) });
+    if (!mothCleared) {
+      const spread = spreadMoth(board, rng);
+      if (spread !== null) steps.push(spread);
+    }
+    if (allGoalsMet(goals, board)) {
+      status = 'won';
+      steps.push(...runYarnOver());
+    } else if (moves === 0) {
+      status = 'lost';
+    } else if (isDeadBoard(board)) {
+      try {
+        shuffleBoard(board, level, rng);
+        steps.push({ type: 'shuffle', board: cloneBoard(board) });
+      } catch {
+        // No arrangement of what is left is playable. shuffleBoard put the board back as it
+        // found it, so the stream still describes it exactly; the level is simply over.
+        status = 'lost';
+      }
     }
     return steps;
   };
@@ -123,11 +229,12 @@ export const createGame = (levelJson, seed) => {
     const steps = [{ type: 'swap', a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y }, illegal: !legal }];
     if (!legal) return { steps };
     swapPieces(board, a, b);
-    moves -= 1;
+    spendMove();
     // read after the exchange, so each piece is where it landed
-    steps.push(...resolveMatches(ctx, [a, b], swapOrders(board, a, b)));
+    const resolved = resolveMatches(ctx, [a, b], swapOrders(board, a, b));
+    creditSteps(goals, resolved);
+    steps.push(...resolved);
     steps.push(...finishMove());
-    if (moves === 0) status = 'lost';
     return { steps };
   };
 
@@ -142,15 +249,15 @@ export const createGame = (levelJson, seed) => {
     if (status !== 'playing') return { steps: [] };
     const orders = tapOrders(board, pos);
     if (orders.length === 0) return { steps: [] };
-    moves -= 1;
-    const steps = resolveMatches(ctx, [], orders);
-    steps.push(...finishMove());
-    if (moves === 0) status = 'lost';
+    spendMove();
+    const resolved = resolveMatches(ctx, [], orders);
+    creditSteps(goals, resolved);
+    const steps = [...resolved, ...finishMove()];
     return { steps };
   };
 
   const useBooster = () => {
-    throw new Error('game.useBooster: not until phase 4 (boosters)');
+    throw new Error('game.useBooster: not until phase 6 (boosters)');
   };
 
   const validMoves = (options) =>

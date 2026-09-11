@@ -8,6 +8,8 @@ export {
   PIECE_KINDS,
   BLOCKERS,
   GOALS,
+  BLOCKER_STEP_KINDS,
+  YARN_OVER_SPECIALS,
   MAX_BOARD_SIZE,
   BLAST_RADII,
   COMBO_BOARD_RADIUS,
@@ -41,6 +43,7 @@ export {
   parseBoard,
   describeStep,
   describeSteps,
+  describeGoal,
   renderState,
   formatPos,
 } from './text.js';

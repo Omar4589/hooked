@@ -13,6 +13,8 @@ import {
   forEachCell,
   isFloor,
   isEmptyOpen,
+  isPlainBall,
+  findPiece,
   cloneBoard,
   columnRuns,
 } from '../src/board.js';
@@ -137,4 +139,22 @@ test('columnRuns splits columns at holes only, sorted by x then top', () => {
     { x: 1, y: 2 },
     { x: 1, y: 3 },
   ]);
+});
+
+test('isPlainBall is the ball a drop, a moth or the win bonus may take', () => {
+  const board = parseBoard(['o. oP oK F. *. __ #1']);
+  const at = (x) => isPlainBall(cellAt(board, { x, y: 0 }).piece);
+  expect([0, 1, 2, 3, 4, 5, 6].map(at)).toEqual([true, false, false, false, false, false, false]);
+});
+
+test('findPiece follows a piece by identity, and loses it when it leaves', () => {
+  const board = parseBoard(['o. m.', '__ __']);
+  const piece = pieceAt(board, { x: 0, y: 0 });
+  expect(findPiece(board, piece)).toEqual({ x: 0, y: 0 });
+  removePiece(board, { x: 0, y: 0 });
+  setPiece(board, { x: 1, y: 1 }, piece);
+  expect(findPiece(board, piece)).toEqual({ x: 1, y: 1 });
+  removePiece(board, { x: 1, y: 1 });
+  expect(findPiece(board, piece)).toBeNull();
+  expect(findPiece(board, { ...piece })).toBeNull(); // identity, not equality
 });

@@ -3,9 +3,10 @@ import { generateBoard } from '../src/generate.js';
 import { createRng } from '../src/rng.js';
 import { loadFixture, fixtureNames, seeds } from './helpers/fixtures.js';
 
-test('the ten fixtures exist with numeric ids in the 9001 range', () => {
+test('the eleven fixtures exist with numeric ids in the 9001 range', () => {
   const names = fixtureNames();
   expect(names).toEqual([
+    'beads-stitch-5x7',
     'blockers-mix',
     'coaster-5x5',
     'dead-prone-5x5',
@@ -18,7 +19,7 @@ test('the ten fixtures exist with numeric ids in the 9001 range', () => {
     'square-7x7',
   ]);
   const ids = names.map((n) => loadFixture(n).id).sort();
-  expect(ids).toEqual([9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010]);
+  expect(ids).toEqual([9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010, 9011]);
   for (const n of names) {
     const f = loadFixture(n);
     expect(typeof f.name).toBe('string');

@@ -1,5 +1,6 @@
-// The app plays one development board until phase 4's loader exists. That import is a scaffold,
-// so it lives in exactly one file and this test keeps it there.
+// Levels reach the app only through @hooked/levels' loader (CLAUDE.md "Never hardcode a level
+// in code"). The phase-2 scaffold that named a level file is gone; this test keeps every file
+// under src/ from naming one again, by package subpath or by relative path.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -16,9 +17,13 @@ const sources = (dir, found = []) => {
   return found;
 };
 
-test('only the sandbox scaffold imports a level file', () => {
+test('no app file names a level file: levels come from the loader', () => {
   const importers = sources(src)
-    .filter((url) => /from '@hooked\/levels\/levels\//.test(readFileSync(url, 'utf8')))
+    .filter((url) =>
+      /from '(@hooked\/levels\/levels\/|(\.\.\/)+packages\/levels\/)/.test(
+        readFileSync(url, 'utf8'),
+      ),
+    )
     .map((url) => url.pathname.slice(src.pathname.length));
-  assert.deepEqual(importers, ['game/sandbox.js']);
+  assert.deepEqual(importers, []);
 });

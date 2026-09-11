@@ -588,10 +588,26 @@ Phase 3's done-when is "every row of the §4 table works and reads clearly **on 
 
 </details>
 
+### 36. Phase 4's three scope calls: does a moth multiply or crawl, how does Yarn Over play out, and where do the three test levels live?
+
+**Owner.** Answered at planning time, 2026-09-11: a moth multiplies; Yarn Over is Fishdom-style; the test levels are development boards on Home.
+
+**Decision.** (1) When a moth spreads, the old one stays and a new one grows on the ball it ate. §5 calls moths "spreading obstacles" that "spread there" while §16 has one "crawl to the neighbor cell"; Fishdom's obstacle grows, a growing one is a real threat where a wandering one is not, and nothing empties, so no gravity pass is needed at the end of a move. (2) Every move left over turns into a Puff or a Bobble all at once, and then they go off one after another and chain into each other, which is Fishdom's fireworks finale rather than a slow one-at-a-time payout. (3) The three levels are development boards (`levels/dev/`, ids 9903–9905) listed on the placeholder Home in development only, so `listLevels()` — the shipped play sequence — stays empty until Book 1 is authored in phase 6 from `docs/LEVELS-BOOK1.md` and levels 1–3 are the real ones.
+
+**Recorded in.** docs/DESIGN.md §11 (level conventions, items 4, 8 and 10) and §16, packages/levels/levels/dev/
+
+<details><summary>Why it was asked</summary>
+
+The first is a genuine contradiction in the spec, and it changes how a moth level plays more than any other single rule. The second decides whether the win is a celebration or a wait, and the spec's "each remaining move turns a random ball into a Puff or Bobble that fires" does not say whether that is one pass or many. The third would have put three throwaway levels into the shipped sequence, which phase 6 then has to unpick.
+
+</details>
+
 ## Where the spec disagreed with itself
 
-All of these were found while reading and are now resolved in DESIGN.md v0.9.1 and v0.9.2
-(the entries below record what the contradictions were).
+All of these were found while reading and are now resolved in DESIGN.md (the entries below
+record what the contradictions were).
+
+- Moths, crawling or multiplying: DESIGN §5 ("spreading obstacles ... one moth eats a random adjacent yarn ball and spreads there") vs §16's `mothSpread` row ("moth crawls to the neighbor cell"). Settled by the owner on 2026-09-11 (item 36): they multiply, and §16's row now says so.
 
 - Blast radius: DESIGN §4 'Blast shape' defines radius r as 'every cell whose center lies within r cell-widths of the special's center' (13 cells for r=2, since cell (2,1) is √5 ≈ 2.24 away) and in the same sentence gives the example '(for r = 2, a 5×5 minus its corners)', which is 21 cells; §11 'Still to verify' item 1 lists only 'plus vs rounded square vs full square'.
 - Goal count: DESIGN §11 build order phase 4 ('the four goal types') and PROMPTS.md phase 4 ('the four goal types') vs DESIGN §6 (five goals: Stitch, Collect, Beads, Clear, Buried, added in v0.7) and CLAUDE.md Rules ('goals stitch, collect, beads, clear, buried').

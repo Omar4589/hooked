@@ -1,6 +1,6 @@
 // The frog meter, as a placeholder. §11 puts the real thing beside the board as a round dial
-// with the goals panel; that arrives with the HUD in phase 4-5. Until then a row of pips under
-// the board is enough to watch the charge rise and the frog drop, which is what phase 3's
+// under the goals panel; that arrives in phase 5 with the dial art. Until then a row of pips
+// under the board is enough to watch the charge rise and the frog drop, which is what phase 3's
 // "reads clearly" needs.
 
 import { StyleSheet, View } from 'react-native';

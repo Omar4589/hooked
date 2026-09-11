@@ -2,6 +2,8 @@
 // swipeDirection and neighbor run on the UI thread inside the pan; swipeTarget runs on the JS
 // side, where the view model lives.
 
+import { inPlay } from './model.js';
+
 /** @typedef {'up'|'down'|'left'|'right'} Direction */
 
 /**
@@ -40,9 +42,10 @@ export const neighbor = (pos, dir) => {
 };
 
 /**
- * Where a swipe would swap to, or null when there is nothing there: off the board, a hole, or a
- * cell with no piece. Those are ignored without troubling the engine; everything else goes to
- * `game.swap`, which answers with an illegal step when the swap makes nothing.
+ * Where a swipe would swap to, or null when there is nothing to swap with: off the board, a
+ * hole, an empty cell, a blocker, or a knotted ball that cannot move. Those are ignored without
+ * troubling the engine; everything else goes to `game.swap`, which answers with an illegal step
+ * when the swap makes nothing.
  * @param {import('./model.js').Model} model
  * @param {{ x: number, y: number }} from
  * @param {Direction} dir
@@ -50,7 +53,5 @@ export const neighbor = (pos, dir) => {
  */
 export const swipeTarget = (model, from, dir) => {
   const to = neighbor(from, dir);
-  if (to.x < 0 || to.y < 0 || to.x >= model.width || to.y >= model.height) return null;
-  if (!model.open[to.y][to.x]) return null;
-  return model.grid[to.y][to.x] === null ? null : to;
+  return inPlay(model, to) ? to : null;
 };

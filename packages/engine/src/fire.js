@@ -208,13 +208,16 @@ export const matchOrders = (board, cells, skip) => {
  * @param {FireOrder[]} seeds  never mutated
  * @param {number} cascade
  * @param {{ maxWaves?: number }} [options]
- * @returns {{ steps: object[], charge: number, blasts: BlastInfo[], cells: Pos[] }}
+ * @returns {{ steps: object[], charge: number, blasts: BlastInfo[], cells: Pos[],
+ *   removed: import('./constants.js').Removed[] }}
  */
 export const runFire = (ctx, seeds, cascade, { maxWaves = MAX_BLAST_WAVES } = {}) => {
   const { board, addScore } = ctx;
   const steps = [];
   const blasts = [];
   const taken = [];
+  // What left and from where, for phase 4's collect goals, stitch squares and knot credit.
+  const removed = [];
   let charge = 0;
   let frontier = seeds.slice();
   let wave = 0;
@@ -265,6 +268,7 @@ export const runFire = (ctx, seeds, cascade, { maxWaves = MAX_BLAST_WAVES } = {}
       if (order.type === 'blast') blasts.push({ pos: at(order.pos), area, cells: cells.map(at) });
       cells.forEach((pos, i) => {
         taken.push(at(pos));
+        removed.push({ pos: at(pos), piece: pieces[i] });
         removePiece(board, pos);
         const piece = pieces[i];
         if (fired.has(piece)) return;
@@ -277,5 +281,5 @@ export const runFire = (ctx, seeds, cascade, { maxWaves = MAX_BLAST_WAVES } = {}
     charge += chargeForWave(frontier);
     frontier = next;
   }
-  return { steps, charge, blasts, cells: taken };
+  return { steps, charge, blasts, cells: taken, removed };
 };

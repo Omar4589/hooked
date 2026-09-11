@@ -1,0 +1,20 @@
+{
+  "id": 9011,
+  "book": 0,
+  "name": "Beads and stitches (a schedule, a knot floor and three exits)",
+  "project": "charm_tail",
+  "hard": false,
+  "moves": 30,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooo", "oobo1", "ooooo", "ooooo", "ooooo", "ookoo", "ooooo"],
+  "stitch": [".....", ".....", ".....", ".....", ".....", "22222", "11111"],
+  "exits": [
+    [1, 6],
+    [2, 6],
+    [3, 6]
+  ],
+  "beads": { "total": 3, "onBoard": 1, "spawnEvery": 3 },
+  "goals": [{ "type": "beads", "count": 3 }, { "type": "stitch" }],
+  "coins": 130
+}

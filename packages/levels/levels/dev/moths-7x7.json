@@ -1,0 +1,17 @@
+{
+  "id": 9905,
+  "book": 0,
+  "name": "Moths in the stash",
+  "project": "yarn_stash",
+  "hard": false,
+  "moves": 22,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooooo", "o1ooo1o", "ooomooo", "ooxoxoo", "ooooomo", "ooooooo", "ooooooo"],
+  "goals": [
+    { "type": "clear", "blocker": "moth" },
+    { "type": "clear", "blocker": "tangle" },
+    { "type": "buried" }
+  ],
+  "coins": 100
+}

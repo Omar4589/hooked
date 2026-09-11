@@ -3,7 +3,7 @@
 // and neither does the Hook.
 
 import { COLORS, METER_CHARGE, METER_FULL, METER_MULTI_BONUS } from './constants.js';
-import { cellAt } from './board.js';
+import { cellAt, isPlainBall } from './board.js';
 
 /** @typedef {import('./constants.js').Board} Board */
 /** @typedef {import('./constants.js').Pos} Pos */
@@ -49,9 +49,7 @@ export const dropCandidates = (board) => {
   for (let y = 0; y < board.height; y += 1) {
     for (let x = 0; x < board.width; x += 1) {
       const cell = cellAt(board, { x, y });
-      if (!cell.open || cell.piece === undefined) continue;
-      const { kind, special, knotted } = cell.piece;
-      if (kind === 'yarn' && special === undefined && knotted !== true) cells.push({ x, y });
+      if (cell.open && isPlainBall(cell.piece)) cells.push({ x, y });
     }
   }
   return cells;

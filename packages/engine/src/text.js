@@ -147,6 +147,17 @@ export const describeStep = (step) => {
       return `meter: ${step.charge}/${step.full}`;
     case 'meterDrop':
       return `meterDrop: ${step.piece.special ?? step.piece.kind} at ${formatPos(step.pos)}`;
+    case 'blocker': {
+      const button = step.buried ? ', button freed' : '';
+      const where = formatPos(step.pos);
+      return `blocker ${step.kind} at ${where}: ${step.layersLeft} left${button} (+${step.points})`;
+    }
+    case 'mothSpread':
+      return `mothSpread ${formatPos(step.from)}->${formatPos(step.to)}`;
+    case 'beadExit':
+      return `beadExit at ${formatPos(step.pos)} (+${step.points})`;
+    case 'yarnOver':
+      return `yarnOver: ${step.specials.length} specials, +${step.coins} coins for ${step.moves} moves`;
     case 'shuffle':
       return 'shuffle: untangling...';
     default:
@@ -157,6 +168,23 @@ export const describeStep = (step) => {
 /** @param {object[]} steps @returns {string[]} */
 export const describeSteps = (steps) => steps.map(describeStep);
 
-/** @param {{ moves: number, score: number, status: string }} state */
-export const renderState = ({ moves, score, status }) =>
-  `moves ${moves} · score ${score} · ${status}`;
+/**
+ * One goal, as the goals panel reads it: `stitch 5/21`, `collect olive 12/30`, `clear tangle 2/3`.
+ * @param {import('./constants.js').GoalState} goal
+ */
+export const describeGoal = (goal) => {
+  const what = [goal.type, goal.color, goal.blocker].filter((s) => s !== undefined).join(' ');
+  return `${what} ${goal.total - goal.remaining}/${goal.total}`;
+};
+
+/**
+ * @param {{ moves: number, score: number, status: string, coins?: number,
+ *   goals?: import('./constants.js').GoalState[] }} state
+ */
+export const renderState = ({ moves, score, coins, goals, status }) => {
+  const parts = [`moves ${moves}`, `score ${score}`];
+  if (coins !== undefined) parts.push(`coins ${coins}`);
+  if (goals !== undefined && goals.length > 0) parts.push(goals.map(describeGoal).join(', '));
+  parts.push(status);
+  return parts.join(' · ');
+};

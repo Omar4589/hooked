@@ -2,10 +2,11 @@
 // specials they create, score, let pieces fall, refill, and repeat until nothing matches.
 // Emits the steps the step player replays, in playback order.
 
-import { MAX_CASCADES, METER_FULL } from './constants.js';
+import { MAX_CASCADES, METER_FULL, SCORE } from './constants.js';
 import { removePiece, setPiece, clonePiece, comparePos, posKey } from './board.js';
 import { findMatches, specialForSize, spawnCellFor } from './match.js';
 import { applyGravity, refill } from './gravity.js';
+import { beadsOnExits } from './beads.js';
 import { matchOrders, runFire } from './fire.js';
 import { scoreForClear } from './score.js';
 
@@ -21,9 +22,9 @@ import { scoreForClear } from './score.js';
  * @property {Set<string>} spawnerKeys           posKey of each spawner
  * @property {(pos: Pos) => Piece} spawnPiece   injected so tests can script refills
  * @property {(points: number) => void} addScore
- * @property {(cleared: Pos[]) => object[]} [damage]
- *   reserved for phase 4 (blocker and stitch damage); returns extra steps emitted between
- *   the clear and the fall
+ * @property {Set<string>} [exitKeys]           posKey of each exit; without it beads never leave
+ * @property {(cleared: Pos[], info: import('./damage.js').DamageInfo) => object[]} [damage]
+ *   blocker and stitch damage; returns the steps emitted between the meter and the fall
  */
 
 /**
@@ -36,16 +37,33 @@ import { scoreForClear } from './score.js';
  * @returns {object[]}
  */
 export const resolveMatches = (ctx, swapped = [], fire = []) => {
-  const { board, runs, spawnerKeys, spawnPiece, addScore, damage, addCharge } = ctx;
+  const {
+    board,
+    runs,
+    spawnerKeys,
+    exitKeys = new Set(),
+    spawnPiece,
+    addScore,
+    damage,
+    addCharge,
+  } = ctx;
   const steps = [];
   let pending = fire;
   let cascade = 1;
   for (;;) {
+    // A bead that reached its exit leaves before anything else this cascade, so the column above
+    // it falls in the same breath (§6).
+    const exits = beadsOnExits(board, exitKeys);
     const matches = findMatches(board);
-    if (matches.length === 0 && pending.length === 0) break;
+    if (matches.length === 0 && pending.length === 0 && exits.length === 0) break;
     if (cascade > MAX_CASCADES) {
       const hint = "check the level's colors and weights";
       throw new Error(`resolve: more than ${MAX_CASCADES} cascades in one move; ${hint}`);
+    }
+    for (const pos of exits) {
+      removePiece(board, pos);
+      addScore(SCORE.bead);
+      steps.push({ type: 'beadExit', pos: { x: pos.x, y: pos.y }, points: SCORE.bead });
     }
     const seeds = pending.slice();
     pending = [];
@@ -60,6 +78,7 @@ export const resolveMatches = (ctx, swapped = [], fire = []) => {
       }
     }
     cleared.sort(comparePos);
+    const removed = [];
     const created = [];
     for (const m of matches) {
       const special = specialForSize(m.size);
@@ -85,17 +104,27 @@ export const resolveMatches = (ctx, swapped = [], fire = []) => {
       // very cell. The firing itself still happens after the clear step.
       const skip = new Set(seeds.map((order) => posKey(order.pos)));
       seeds.push(...matchOrders(board, cleared, skip));
-      for (const p of cleared) removePiece(board, p);
+      for (const p of cleared)
+        removed.push({ pos: { x: p.x, y: p.y }, piece: removePiece(board, p) });
       for (const c of created) setPiece(board, c.pos, clonePiece(c.piece));
     }
     const fired = runFire(ctx, seeds, cascade);
     steps.push(...fired.steps);
+    removed.push(...fired.removed);
     if (fired.charge > 0 && addCharge !== undefined) {
       const charge = addCharge(fired.charge);
       if (charge !== null) steps.push({ type: 'meter', charge, full: METER_FULL });
     }
     if (damage !== undefined) {
-      steps.push(...damage(cleared, { cascade, blasts: fired.blasts, blasted: fired.cells }));
+      steps.push(
+        ...damage(cleared, {
+          cascade,
+          matches,
+          blasts: fired.blasts,
+          blasted: fired.cells,
+          removed,
+        }),
+      );
     }
     const moves = applyGravity(board, runs);
     if (moves.length > 0) steps.push({ type: 'fall', moves });

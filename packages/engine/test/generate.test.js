@@ -221,7 +221,10 @@ test('shuffleBoard throws when no permutation is playable', () => {
     colors: ['olive', 'mustard'],
     cells: ['oo', 'oo'],
   });
+  const before = renderBoard(stuck);
   expect(() => shuffleBoard(stuck, level, createRng(1))).toThrow(/level 4: cannot shuffle/);
+  // giving up leaves the board as it was found, so the step stream still describes it exactly
+  expect(renderBoard(stuck)).toBe(before);
 });
 
 test('movablePositions lists unknotted yarn only, row-major', () => {

@@ -1,0 +1,17 @@
+{
+  "id": 9904,
+  "book": 0,
+  "name": "Charm tail",
+  "project": "charm_tail",
+  "hard": false,
+  "moves": 32,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooooo", "ooooooo", "ooobooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo"],
+  "goals": [
+    { "type": "collect", "color": "rust", "count": 30 },
+    { "type": "beads", "count": 3 }
+  ],
+  "beads": { "total": 3, "onBoard": 1, "spawnEvery": 4 },
+  "coins": 100
+}

@@ -1,0 +1,14 @@
+{
+  "id": 9903,
+  "book": 0,
+  "name": "Ring coaster",
+  "project": "ring_coaster",
+  "hard": false,
+  "moves": 22,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo"],
+  "stitch": [".......", ".11111.", ".1...1.", ".1.2.1.", ".1...1.", ".11111.", "......."],
+  "goals": [{ "type": "stitch" }],
+  "coins": 100
+}

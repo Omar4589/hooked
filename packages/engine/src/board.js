@@ -97,6 +97,34 @@ export const isFloor = (cell) =>
 export const isEmptyOpen = (cell) =>
   cell.open === true && cell.piece === undefined && !(cell.tangle > 0) && cell.moth !== true;
 
+/**
+ * A yarn ball with nothing on it: what the meter drops onto, what a moth eats, and what Yarn
+ * Over turns into a special. Specials, knots, beads and the frog are all left alone.
+ * @param {Piece} [piece]
+ */
+export const isPlainBall = (piece) =>
+  piece !== undefined &&
+  piece.kind === 'yarn' &&
+  piece.special === undefined &&
+  piece.knotted !== true;
+
+/**
+ * Where this exact piece object sits now, or null once it has left the board. Identity, not
+ * equality: gravity and the wave move the same object around, which is how Yarn Over finds a
+ * special it placed several cascades ago.
+ * @param {Board} board
+ * @param {Piece} piece
+ * @returns {Pos|null}
+ */
+export const findPiece = (board, piece) => {
+  for (let y = 0; y < board.height; y += 1) {
+    for (let x = 0; x < board.width; x += 1) {
+      if (board.cells[y][x].piece === piece) return { x, y };
+    }
+  }
+  return null;
+};
+
 /** @param {Piece} piece @returns {Piece} */
 export const clonePiece = (piece) => ({ ...piece });
 

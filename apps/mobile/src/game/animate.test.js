@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ease, sampleProp, sampleShake, sampleTrack } from './animate.js';
+import { ease, sampleCell, sampleProp, sampleShake, sampleTrack } from './animate.js';
 import { FALL_OVERSHOOT } from './timings.js';
 
 const NAMES = ['linear', 'in', 'out', 'inOut', 'outBack'];
@@ -84,7 +84,7 @@ test('sampleTrack samples the four properties and leaves untouched ones at their
 });
 
 test('the sampling functions carry the worklet directive and import no react code', () => {
-  for (const fn of [ease, sampleProp, sampleTrack]) {
+  for (const fn of [ease, sampleProp, sampleTrack, sampleCell]) {
     assert.ok(fn.toString().includes("'worklet'"), fn.name);
   }
   const src = readFileSync(new URL('./animate.js', import.meta.url), 'utf8');
@@ -115,4 +115,23 @@ test('overlapping shakes add, and an empty list is still rest', () => {
 
 test('sampleShake carries the worklet directive', () => {
   assert.ok(sampleShake.toString().includes("'worklet'"));
+});
+
+test('sampleCell reads the seven numbers a cell draws with', () => {
+  const track = {
+    base: 0,
+    initial: { x: 0, y: 0, scale: 1, layers: 2, moth: 0, stitch: 1, button: 1 },
+    x: [],
+    y: [],
+    scale: [],
+    layers: [{ at: 0, duration: 150, to: 1, easing: 'linear' }],
+    moth: [],
+    stitch: [],
+    button: [{ at: 0, duration: 150, to: 0, easing: 'linear' }],
+  };
+  assert.deepEqual(sampleCell(track, 0), track.initial);
+  assert.equal(sampleCell(track, 75).layers, 1.5);
+  assert.equal(sampleCell(track, 150).layers, 1);
+  assert.equal(sampleCell(track, 150).button, 0);
+  assert.equal(sampleCell(track, 999).stitch, 1); // untouched properties hold their initial
 });

@@ -1,7 +1,7 @@
 {
   "id": 9006,
   "book": 0,
-  "name": "Blockers mix (cells under a tangle stay empty until phase 4)",
+  "name": "Blockers mix (a moth, a buried tangle, knots and beads)",
   "project": "yarn_basket",
   "hard": false,
   "moves": 30,

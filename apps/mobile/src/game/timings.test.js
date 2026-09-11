@@ -48,3 +48,18 @@ test('a puff does not shake the board; the bigger blasts shake harder', () => {
   assert.ok(T.BLAST_SHAKE.popcorn < T.BLAST_SHAKE.yarnbomb);
   assert.ok(T.BLAST_SHAKE.yarnbomb < 0.5); // never enough to read as a piece moving
 });
+
+test('the §16 cell rows: a blocker 150 ms, a moth spread 250, a bead exit 250', () => {
+  assert.equal(T.BLOCKER_MS, 150);
+  assert.equal(T.MOTH_MS, 250);
+  assert.equal(T.BEAD_EXIT_MS, 250);
+});
+
+test('the cell knobs stay small, so a nudge never reads as a piece moving', () => {
+  assert.ok(T.BLOCKER_SHAKE > 0 && T.BLOCKER_SHAKE < 0.5);
+  assert.ok(T.MOTH_LUNGE > 0 && T.MOTH_LUNGE < 0.5);
+  assert.ok(T.CELL_POP_SCALE > 1);
+  assert.ok(T.BEAD_EXIT_DROP > 0);
+  // the last special of the win bonus must still have room to pop in before its window closes
+  assert.ok(T.YARN_OVER_PLACE_MS >= T.CREATE_MS);
+});
