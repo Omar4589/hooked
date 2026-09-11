@@ -44,6 +44,7 @@ one-off commands use `npx eas-cli@24 <command>` from `apps/mobile`.
 
 ```bash
 npx expo start                  # Metro + QR; open in Expo Go on the phone (same Wi-Fi)
+npm test                        # node --test over src/game/*.test.js (the pure modules)
 npm run ota:staging             # JS/assets to TestFlight + Play internal (fingerprint-checked)
 npm run ota:production          # JS/assets to real users (fingerprint-checked)
 npm run ota:check               # compare the tree's fingerprint to the fielded builds, publish nothing

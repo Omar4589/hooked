@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { navigationRef } from './src/nav';
 import { CREAM } from './src/art/palette';
 import HomeScreen from './src/screens/HomeScreen';
+import PlayScreen from './src/screens/PlayScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +22,8 @@ const App = () => (
           screenOptions={{ headerShown: false, contentStyle: { backgroundColor: CREAM } }}
         >
           <Stack.Screen name="Home" component={HomeScreen} />
+          {/* gestureEnabled: false so iOS's edge swipe cannot pop the screen mid-move. */}
+          <Stack.Screen name="Play" component={PlayScreen} options={{ gestureEnabled: false }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

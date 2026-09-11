@@ -11,7 +11,8 @@
     "ota:check": "node scripts/ota-check.mjs",
     "ota:production": "node scripts/ota-check.mjs && npx --yes eas-cli@24 update --branch production --environment production",
     "ota:staging": "node scripts/ota-check.mjs --build-profile=staging && npx --yes eas-cli@24 update --branch staging --environment production",
-    "ota:preview": "npx --yes eas-cli@24 update --branch preview --environment preview"
+    "ota:preview": "npx --yes eas-cli@24 update --branch preview --environment preview",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/game/*.test.js"
   },
   "dependencies": {
     "@hooked/engine": "*",

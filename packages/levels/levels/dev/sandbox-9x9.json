@@ -1,0 +1,23 @@
+{
+  "id": 9901,
+  "book": 0,
+  "name": "Sandbox 9x9",
+  "project": "sandbox",
+  "hard": false,
+  "moves": 999,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender", "cocoa"],
+  "meter": "none",
+  "cells": [
+    "ooooooooo",
+    "ooooooooo",
+    "ooooooooo",
+    "ooooooooo",
+    "ooooooooo",
+    "ooooooooo",
+    "ooooooooo",
+    "ooooooooo",
+    "ooooooooo"
+  ],
+  "goals": [],
+  "coins": 0
+}

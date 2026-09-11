@@ -6,7 +6,8 @@
   "type": "module",
   "main": "./src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./levels/dev/*.json": "./levels/dev/*.json"
   },
   "scripts": {
     "test": "NODE_OPTIONS=--experimental-vm-modules jest"

@@ -4,6 +4,8 @@
 
 *A cozy match-3 where every level is a crochet project, and everything you make decorates your room. A tribute to one crocheter, built to ship to everyone.*
 
+> **v0.9.5 (2026-09-11, phase 2 built):** the step player's rules are recorded in §11 ("Step player conventions (phase 2)"): one clock per move that every piece samples, input locked while it plays, the swipe decided at activation from the touch-down point, where spawned pieces enter, the shuffle fade, and what a ball carrying a special looks like before phase 3. §16's `clear` particles move to phase 5 and its `spawn` row follows the engine's entry rows. The board on the phone plays `packages/levels/levels/dev/sandbox-9x9.json`, a development level the loader never lists.
+>
 > **v0.9.4 (2026-09-11, phase 1 built):** the engine conventions are recorded in §11 ("Engine conventions (phase 1)"): runs are split by holes only and blockers are floors (§3, §10), the `clear` step carries `points`, `state()` carries `level` and the two `meter` shapes, and §16 gains a `shuffle` row. `packages/engine/fixtures/*.json` are engine test and CLI inputs, not shipped levels.
 >
 > **v0.9.3 (2026-09-10, second round):** her first name is in the credits line and the hidden level's note, and nowhere else (§13, reversing the blanket no-name rule; photos still never ship); the Google Play account canvass-app ships under is reused; age rating matches Fishdom (4+ / Everyone) with a 13+ declared audience; the store name is **Yarn Over** (§11 Shipping; "Yarniverse" was dropped because "Knit Stars and Yarniverse" exists).
@@ -49,7 +51,7 @@ Swap yarn balls to make matches. Every level is a crochet project (a coaster, a 
 ## 3. Board rules
 
 - Grid up to **9×9**. Any cell can be masked off to make shaped boards (a coaster is round-ish, a scarf is 5 wide and 9 tall, a tote is a trapezoid, a butterfly has four wings).
-- **5–6 yarn colors** per level (fewer colors = easier and makes 6- and 7-matches possible). Palette from her work (§15): `olive`, `mustard`, `blush`, `rust`, `lavender`, `cocoa`.
+- **5–6 yarn colors** per level (fewer colors = easier and makes 6- and 7-matches possible). Palette from her work (§15): `olive`, `mustard`, `blush`, `rust`, `lavender`, `cocoa`. Measured on a full 9×9 board (2,400 bot moves per setting, 2026-09-11): six colors cascade on 34% of moves and make a special every ~9 moves; five cascade on 46% and make one every ~5; four cascade on 60% and make one every ~2. Five is the lively default for Book 1; six is the dry, harder setting, and four is chaos. A level's color count is the first dial to reach for when it plays flat or frantic.
 - **Swap** two orthogonally adjacent pieces. A swap is legal if it creates a match of 3+, or if either piece is a special (swapping a special fires it, Fishdom-style). Otherwise the pieces snap back and no move is spent.
 - **Match** = 3+ same color in a straight line. Matches of 4, 5, 6 and 7+ pieces create specials (§4); an L or T counts by total pieces (an L of 5 is a 5-match). The special spawns at the swapped piece (or the corner of an L/T); a match made by a cascade spawns its special at the middle cell of the run (the corner for an L/T).
 - **Gravity** pulls pieces straight down. Each vertical run of non-hole cells refills from a spawner at its top; a tangle, moth or knotted ball inside a run is a floor: nothing falls through it, and the cells below it stay empty until it clears, the way a Fishdom column only ever fills from its top. (Diagonal slide around holes is a v2 item.)
@@ -441,13 +443,29 @@ hooked/                     monorepo, same tooling as canvass-app
 6. A shuffle permutes the movable yarn balls (knots, beads, the frog and blockers stay) until the board is match-free with a valid move; 200 attempts, then an error.
 7. Presets sit on `o` cells only; a preset special rides the ball already there; `frog` replaces it. `x` is a 2-layer tangle with `buried: true`. `exits` default to the lowest non-hole cell of each column; `beads` default to the bead cells on the board; goals, `hard` and `hidden` are validated.
 8. Only the cleared ball is multiplied; the special bonuses are flat. A legal swap spends one move; `status` becomes `lost` at 0 moves (`won` arrives with goals). A swap on a finished game returns no steps; malformed coordinates throw; a swap into a hole, tangle, moth, empty cell or knot is an `illegal` step.
-9. Steps never share objects with the board, and `illegal` is always a boolean. The stream is complete and strict: `applySteps(board, steps)` (exported) rebuilds the engine's board exactly and throws on a stream that under-reports; the phone's step player is that function with animations. Spawns in one run are the contiguous empty prefix from the run's top, so the i-th of n enters from row top − (n − i).
+9. Steps never share objects with the board, and `illegal` is always a boolean. The stream is complete and strict: `applySteps(board, steps)` (exported) rebuilds the engine's board exactly and throws on a stream that under-reports; the phone's step player is that function with animations. Spawns in one run are the contiguous empty prefix from the run's top, so the i-th of n enters from row top − (n − i); where they enter from on screen is the step player's call (see the phase-2 conventions).
 10. More than 100 cascades in one move is an error (a level whose weights leave one color would otherwise loop forever).
+
+**Step player conventions (phase 2, decided 2026-09-11).** What `apps/mobile/src/game` does where §11 and §16 left room; same rule as above, keep them easy to change.
+
+1. One move plays at a time: `game.swap` advances the engine the moment it is called, so there is no half-played board to swap on. A swipe made during playback is remembered only when both of its cells sit out that whole move untouched, because there the board the player aimed at is exactly the board they get; it fires as soon as the move settles. A swipe aimed into the churn is let go rather than applied to whatever lands there, and the last remembered swipe wins. The board arbitrates on the JS side, so a second gesture can never start a second move. (Moves run 470 ms at the median and over a second on one in nine, so dropping every swipe during playback made a fast player's board feel dead.)
+2. A swipe is decided once, when the pan activates: the dominant axis of the travel from the touch-down point picks the neighbour (a tie reads as horizontal), and the threshold is a quarter of a cell, clamped to 10–24 pt. The touch-down point is recorded in `onBegin`, because both native pan handlers zero their translation at activation. A swipe that starts or lands off the board, on a hole or on an empty cell is ignored without calling the engine.
+3. A move is one absolute timeline. `buildMove` turns the step stream into a track per piece (segments of `at`, `duration`, `to`, easing, in grid units), the board runs one linear clock from `base` to `base + total`, and every piece samples its track against that clock on the UI thread. Pieces in a column therefore share one instant and a stack cannot drift apart, and the whole timeline is testable in node without a device.
+4. Timings follow §16: swap 150 (illegal 2×120, sliding a full cell out and back), then per cascade clear 120 with created specials popping in over the same 120, then fall and spawn together for 200, then the next cascade with no gap. Movement uses a deterministic ease-out-back rather than a spring, so every move has a known length.
+5. Spawned pieces enter from above their run: the i-th of n from row top − (n − i) when the run reaches the top edge, clipped by the board; a run fed through a hole has no room above it, so its pieces enter on the hole cell and fan out as they fall. They are invisible until their fall starts.
+6. A piece is a view with a stable id, assigned when the board is built, a piece spawns, or a special is created, and kept through swaps and falls. Ids only grow: a shuffle and every self-heal rebuild carry the counter forward, so a fresh piece never takes the key of one still on screen.
+7. A cleared piece keeps drawing (scaling to 0 and fading) until the move ends, then is dropped in the same commit that unlocks input.
+8. `shuffle` ends its move: everything before it plays, the board fades out over 200 ms behind "Untangling…", every view is rebuilt from the step's snapshot, and it fades back in over 200 ms once those pieces exist.
+9. A ball carrying a special (the engine makes them on 4+ matches from phase 1) is drawn as its colored circle with a thin ring. It is a placeholder for legibility, not art: phase 3 replaces it, and until then swapping one just exchanges the pieces and spends the move.
+10. The board is laid out against a measured arena view, never the window: the cell is the largest whole pixel that fits, the board is centred, and nothing is drawn until the arena has been measured. No side gutters are reserved; the phase-4 panels shrink the arena and the board re-fits.
+11. A move ends on the clock's own callback, with a JS timer as a safety net that the clock disarms; the move in flight is recorded before the engine advances, so completion happens exactly once and can never compare a stale board to the engine's.
+12. After every move the view's board is compared with the engine's. They must match cell for cell; a mismatch warns in development and rebuilds from the engine rather than playing on from a wrong picture.
+13. Deferred, with nothing in phase 2 depending on them: the ~5 s idle hint (§3), the clear particles (§16), the HUD, sounds and haptics, win and lose, and honouring Reduce Motion.
 
 **Build order.** Each phase has a "done when" so you know when to move on.
 
 1. **Engine, no screen.** `packages/engine` as a pure JS package with Jest tests: board generation with no starting matches, match detection, swap legality, gravity and refill, cascades, scoring. Plus a small node script that plays random moves and prints the board as text. *Done when the tests pass and a text board plays itself in the terminal.* *(Built 2026-09-11: `npm run play -- packages/engine/fixtures/coaster-5x5.json`.)*
-2. **Bare board on your phone.** `apps/mobile` (Expo). Placeholder pieces (colored circles in the six palette colors), swipe to swap, the step player animating clears, falls and spawns. No backgrounds, no HUD. *Done when you can play on your own phone and it feels smooth.*
+2. **Bare board on your phone.** `apps/mobile` (Expo). Placeholder pieces (colored circles in the six palette colors), swipe to swap, the step player animating clears, falls and spawns. No backgrounds, no HUD. *Done when you can play on your own phone and it feels smooth.* *(Built 2026-09-11: Home → Play on the sandbox board; `npm run test:mobile`.)*
 3. **Specials and the meter.** Puff, Bobble, Popcorn, Yarn Bomb, the frog meter and the Hook, firing by swap, double-tap and chain, each with a big visible blast. The rules in §4 were settled by decision on 2026-09-10; no Fishdom session is needed. *Done when every row of the table in §4 works and reads clearly.*
 4. **Level rules.** JSON loader, the five goal types, the three blockers, the goals bar, move counter, win/lose, Yarn Over with coins. Three hand-written test levels. *Done when you can load a level file, win it, lose it, and watch stitch squares fill in.*
 5. **Vertical slice: finish level 1 completely.** Art enters here. Real SVG yarn balls and specials in her palette, the level card, HUD, win screen with the project illustration, sounds, haptics. *Done when you'd hand her the phone with only this level on it.*
@@ -577,7 +595,7 @@ Step → animation (starting values; tune by feel):
 | Step | What moves | Duration |
 |---|---|---|
 | `swap` | both pieces slide to each other's cell; illegal swaps slide out and bounce back | 150 ms (2×120 ms if illegal) |
-| `clear` | pieces scale to 0 and fade; 6–8 tiny yarn-fluff particles fly outward | 120 ms |
+| `clear` | pieces scale to 0 and fade; 6–8 tiny yarn-fluff particles fly outward (the particles arrive with the art in phase 5) | 120 ms |
 | `blast` puff | quick pop, a small plus-shaped puff of fluff | 150 ms |
 | `blast` bobble / popcorn / yarn bomb | scale pulse, then a ring expands to the blast radius; pieces pop as the ring reaches them. Bigger radius, bigger ring, longer shake | 250 / 350 / 450 ms |
 | `blast` hook | three streaks sweep along the rows or columns | 250 ms |
@@ -585,8 +603,8 @@ Step → animation (starting values; tune by feel):
 | `meter` | the meter fills a notch; the frog wiggles when it's full | 150 ms |
 | `meterDrop` | the frog (or hook) hops from the meter onto its cell | 300 ms |
 | `blocker` | tangle/moth/knot shakes and loses a layer; a stitch square flips to "stitched" with a scale pop | 150 ms |
-| `fall` | translateY to the new cell with a slight overshoot (`withSpring` or ease-out-back) | 200 ms |
-| `spawn` | new pieces start one row above the board and fall in | 200 ms |
+| `fall` | translateY to the new cell with a slight overshoot (ease-out-back; `FALL_OVERSHOOT` in the step player's `timings.js`) | 200 ms |
+| `spawn` | new pieces fall in from above their run: the i-th of n starts n − i rows above the run's top, or on the hole cell above a run fed through one | 200 ms |
 | `shuffle` | "Untangling…": the board fades out and fades back in at the snapshot's positions; a full rebuild from `board`, no per-piece movement | 400 ms |
 | `mothSpread` | moth crawls to the neighbor cell | 250 ms |
 | `beadExit` | bead drops off the bottom edge and lands on the project illustration | 250 ms |

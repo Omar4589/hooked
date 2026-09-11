@@ -37,7 +37,7 @@ that under-reports.
 | `swap` | `a`, `b`, `illegal` | `illegal` is always a boolean; an illegal swap is the only step of its move |
 | `clear` | `cells: Pos[]`, `created: [{ pos, piece }]`, `cascade`, `points` | cascade is 1-based; created specials sit on cleared cells |
 | `fall` | `moves: [{ from, to }]` | every moved piece once, straight down, final positions; apply as a batch (lift every `from`, then place every `to`); a special created by the same cascade's `clear` can be a `from` here |
-| `spawn` | `cells: [{ pos, piece }]` | x then y; per run the contiguous empty prefix from the run's top, so the i-th (0-based) of n enters from row `top − (n − i)`, one row above the board for the last one |
+| `spawn` | `cells: [{ pos, piece }]` | x then y; per run the contiguous empty prefix from the run's top, so the i-th (0-based) of n enters from row `top − (n − i)`, one row above the board for the last one. Where they enter from on screen is the step player's call |
 | `shuffle` | `board` | same shape as `state().board`; rebuild every view from it |
 
 Per move: `swap`, then per cascade `clear → fall → spawn` (empty ones omitted), then possibly

@@ -1,20 +1,27 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { COLORS, ENGINE_VERSION } from '@hooked/engine';
 import { listLevels } from '@hooked/levels';
 import { PALETTE, CREAM } from '../art/palette';
+import { navigate } from '../nav';
+import { newSeed } from '../game/sandbox';
 import { API_BASE_URL } from '../config';
 
-// Phase 0 hello world. Proves the app boots on a phone, resolves the workspace packages
-// through Metro, and draws the six placeholder yarn balls in landscape. The Room replaces
-// it as the home screen in phase 6.
+// Phase 0 hello world, now with a way into the phase-2 board. Proves the app boots on a phone,
+// resolves the workspace packages through Metro, and draws the six placeholder yarn balls in
+// landscape. The Room replaces it as the home screen in phase 6.
 const HomeScreen = () => {
   const insets = useSafeAreaInsets();
+  const onPlay = () => {
+    const seed = newSeed();
+    console.log(`[play] seed ${seed}`);
+    navigate('Play', { seed });
+  };
   return (
     <View style={[styles.screen, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <Text style={styles.title}>Yarn Over</Text>
-      <Text style={styles.subtitle}>A crochet match-3 · phase 0</Text>
+      <Text style={styles.subtitle}>A crochet match-3 · phase 2</Text>
       <View style={styles.palette}>
         {COLORS.map((color) => (
           <View
@@ -24,6 +31,13 @@ const HomeScreen = () => {
           />
         ))}
       </View>
+      <Pressable
+        onPress={onPlay}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.play, pressed && styles.playPressed]}
+      >
+        <Text style={styles.playText}>Play</Text>
+      </Pressable>
       <Text style={styles.meta}>
         engine {ENGINE_VERSION} · {listLevels().length} levels · app {Constants.expoConfig?.version}
       </Text>
@@ -53,6 +67,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  play: {
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 22,
+    backgroundColor: PALETTE.rust,
+  },
+  playPressed: { opacity: 0.8 },
+  playText: { color: CREAM, fontSize: 18, fontWeight: '700' },
   meta: { fontSize: 12, color: PALETTE.cocoa, opacity: 0.6 },
 });
 

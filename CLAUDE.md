@@ -34,6 +34,10 @@ The public name is **Yarn Over**; "Hooked" is the codename for the repo, the EAS
   player in `apps/mobile/src/game`.
 - Every change to `packages/engine` ships with a Jest test. Run the engine
   tests before calling a task done.
+- The board's maths in `apps/mobile/src/game` (geometry, swipe, view model,
+  the move timeline) imports nothing from react or react-native and ships with
+  a `node --test` test; anything a gesture or an animated style calls runs on
+  the UI thread, so it carries a `'worklet'` directive.
 - Levels are JSON in `packages/levels` and follow `docs/DESIGN.md §10`.
   Never hardcode a level in code.
 - Names are fixed: colors `olive, mustard, blush, rust, lavender, cocoa`;
@@ -64,8 +68,10 @@ The public name is **Yarn Over**; "Hooked" is the codename for the repo, the EAS
 
 ## Commands
 All from the repo root unless noted:
-- all tests (engine, levels, api): `npm test`
+- all tests (engine, levels, api, mobile): `npm test`
 - engine tests only: `npm test -w packages/engine`
+- mobile pure-module tests only: `npm run test:mobile` (`node --test` over
+  `apps/mobile/src/game/*.test.js`)
 - run the app: `npx expo start` inside `apps/mobile` (or `npm run mobile`)
 - web playground: `npm run dev:playground` (http://localhost:5174)
 - API: `npm run dev:api` (needs `apps/api/.env`, see `apps/api/.env.example`)

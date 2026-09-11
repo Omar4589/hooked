@@ -560,6 +560,20 @@ The repo is git-inited on main with zero commits and everything untracked. The t
 
 </details>
 
+### 34. Where does the 9x9 board phase 2 plays live, since `@hooked/levels` is empty until phase 4 and the engine fixtures are not shipped levels?
+
+**Owner.** Approved with the phase 2 plan (2026-09-11).
+
+**Decision.** A development level, `packages/levels/levels/dev/sandbox-9x9.json` (id 9901, in a `99xx` dev range clear of the fixtures' 90xx ids): 9x9 open, all six colors, 999 moves so a feel test never runs out, `meter: "none"`, no goals, no coins. `listLevels()` still returns `[]`, so nothing ships it; the app reaches it through the package's `./levels/dev/*.json` export from one scaffold file, `apps/mobile/src/game/sandbox.js`, which phase 4 deletes in favour of the loader. A test in `apps/mobile` keeps that import in that one file, and `packages/levels/test/sandbox.test.js` keeps the board valid and playable. A ninth engine fixture was the alternative and was dropped: fixtures are documented twice over as test and CLI inputs rather than levels, and a 999-move fixture would break the engine's replay suite, which plays every fixture to its end.
+
+**Recorded in.** packages/levels/levels/README.md, docs/DESIGN.md §11 (step player conventions), CLAUDE.md
+
+<details><summary>Why it was asked</summary>
+
+The phase-2 prompt says to render a 9x9 board, and nothing in the repo was one: `packages/levels` is a stub whose loader arrives in phase 4, and the engine's fixtures top out at 7x7 (plus a 5-wide, 9-tall scarf). CLAUDE.md says levels are JSON in `packages/levels` and never hardcoded in code, so the board could not simply be written into the app either. Cost of changing later: one file and one import line, since only the scaffold names it.
+
+</details>
+
 ## Where the spec disagreed with itself
 
 All of these were found while reading and are now resolved in DESIGN.md v0.9.1 and v0.9.2
