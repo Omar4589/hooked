@@ -1,5 +1,7 @@
 # Hooked
 
+Store name **Yarn Over**; "Hooked" is the codename used for the repo, the EAS slug and the bundle id.
+
 A cozy match-3 where every level is a crochet project and everything you make decorates
 your room. Modeled on Fishdom, themed around crochet, built to ship. The design is in
 [docs/DESIGN.md](docs/DESIGN.md); the working rules in [CLAUDE.md](CLAUDE.md).
@@ -35,6 +37,6 @@ cp apps/api/.env.example apps/api/.env && npm run dev:api   # needs a local mong
 
 Phase 0 (monorepo setup) is committed. The EAS project exists (`@omar4589/hooked`), the
 identifiers are final (`com.omarzumaya.hooked`), and the owner's decisions from 2026-09-10 are
-in DESIGN.md and docs/QUESTIONS.md. Not yet done: hello world confirmed on a phone, the Heroku
-app and Atlas cluster (phase 7), the store name (candidate: Yarniverse; "Hooked" stays the codename). Phases 1–9 and their "done when" are in
+in DESIGN.md and docs/QUESTIONS.md. Hello world ran on a phone through Expo Go on 2026-09-10, so phase 0's done-when is met. Not
+yet done: the Heroku app and Atlas cluster (phase 7). Phases 1–9 and their "done when" are in
 DESIGN.md §11; phase 0's is the setup prompt in docs/PROMPTS.md.

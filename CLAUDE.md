@@ -6,6 +6,7 @@ as a commercial release with in-app purchases. The full design is in `docs/DESIG
 sections relevant to the current phase; §11 has the architecture, the
 monorepo layout, and the build order with a "done when" for each phase.
 Open questions for the owner live in `docs/QUESTIONS.md`; the per-phase prompts in `docs/PROMPTS.md`.
+The public name is **Yarn Over**; "Hooked" is the codename for the repo, the EAS slug and the bundle id.
 
 ## Monorepo
 - Same tooling and conventions as `~/Desktop/canvass-app`: npm, Node 22.x (`.nvmrc` and a Volta pin), Expo +

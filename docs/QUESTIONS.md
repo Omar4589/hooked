@@ -10,15 +10,15 @@ decision now lives. Decisions live in DESIGN.md; this file is the record.
   The hidden level stays, its note now "Fastened off. For Faith, who is at level 7000. Thank
   you for every stitch." Her name appears in those two places only. Items 9 and 25.
 - Store name: the public one shoppers see is the one that must be unique; the bundle id is
-  what Apple sees internally and is already set. Candidate: **Yarniverse**, to be verified
-  when the App Store Connect record is created. Item 22.
+  what Apple sees internally and is already set. Candidate then: Yarniverse, dropped the same day
+  (already a yarn-space brand); the third round settled on **Yarn Over**. Item 22.
 - Google Play: the account canvass-app ships under. Item 23.
 - Age rating: the same as Fishdom, 4+ / Everyone, with a 13+ declared audience. Item 24.
 
 ## Still open
 
-- **Store name.** Pick from the shortlist under item 22 (my recommendation: Yarn Over). The App
-  Store Connect record and a trademark search make it final.
+- Nothing at the moment. The store name (Yarn Over) gets its final check when the App Store
+  Connect record is created.
 
 ## Answer before phase 1 (engine)
 
@@ -370,7 +370,7 @@ The spec requires a dyno that does not sleep (Continue prompts and gift popups m
 
 **Owner.** Undecided; ideas: Yarn Farm, Yarn House, Yarn Bank.
 
-**Decision.** Yarniverse dropped ("Knit Stars and Yarniverse" exists on the App Store). Shortlist from an App Store search on 2026-09-10, none verified in App Store Connect yet: **Yarn Over** (recommended: a real crochet move, short, already the name of the end-of-level bonus, no app with that name found), **Fastened Off** (the win banner, no app found), **Yarn Nook** (ties to the Craft Nook, no app found), **Puff Stitch** (the first special, no app found). Taken: Skein (two apps), Cozy Stitch, Yarniverse. "Hooked" stays the codename, repo and EAS slug; `expo.name` follows the store name once App Store Connect confirms it.
+**Decision.** **Yarn Over** (chosen by the owner, third round). "Hooked" stays the codename, repo and EAS slug; `expo.name` is now "Yarn Over". Fallbacks if App Store Connect or a trademark search rejects it: Fastened Off, Yarn Nook, Puff Stitch (none found on the App Store on 2026-09-10). Taken: Skein, Cozy Stitch, Yarniverse.
 
 **Recorded in.** Still open, see the top of this file
 

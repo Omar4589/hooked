@@ -13,7 +13,7 @@ const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.screen, { paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <Text style={styles.title}>Hooked</Text>
+      <Text style={styles.title}>Yarn Over</Text>
       <Text style={styles.subtitle}>A crochet match-3 · phase 0</Text>
       <View style={styles.palette}>
         {COLORS.map((color) => (

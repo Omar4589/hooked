@@ -25,8 +25,8 @@ Done on 2026-09-10:
 - **EAS project** `@omar4589/hooked` (id `fb9c9a73-47a6-4c90-a0c6-9178127717d2`); app.json
   carries `extra.eas.projectId` and `updates.url`.
 - **Identifiers**, final: `ios.bundleIdentifier` and `android.package` are both
-  `com.omarzumaya.hooked`; slug and scheme `hooked`. The on-device name is "Hooked"; the store
-  name is still to be chosen and does not constrain any of these.
+  `com.omarzumaya.hooked`; slug and scheme `hooked`. The on-device name and the store name are
+  "Yarn Over"; "Hooked" is the codename (slug, scheme, bundle id).
 
 Still placeholders, fill before the first `eas build`:
 
