@@ -17,11 +17,8 @@ decision now lives. Decisions live in DESIGN.md; this file is the record.
 
 ## Still open
 
-- **Store name.** Yarniverse is the candidate, but "Knit Stars and Yarniverse" is already on the App
-  Store, so it is a live brand in the yarn space; a trademark search and the App Store Connect
-  check decide it. Have a second candidate ready. Item 22.
-- **Money.** Whether the LLC or your personal name receives revenue (the LLC is my default; see
-  item 17 for why), and the revenue arrangement with her, written down before phase 9.
+- **Store name.** Pick from the shortlist under item 22 (my recommendation: Yarn Over). The App
+  Store Connect record and a trademark search make it final.
 
 ## Answer before phase 1 (engine)
 
@@ -291,7 +288,7 @@ As specified, the server owns money and identity only; progress lives on the pho
 
 **Owner.** "I have my own LLC so technically that could receive. Or my personal, no?" (a question, answered in chat).
 
-**Decision.** My default is the LLC (liability and tax separation; either works technically, payouts follow the banking details on the developer accounts). Owner to confirm, and to write down the revenue arrangement with her before phase 9. Confirm the Apple paid-apps agreement and a Play merchant profile before phase 7.
+**Decision.** Third round: revenue goes to the owner personally; the arrangement with her is his to handle and is not tracked here. Confirm the Apple paid-apps agreement and a Play merchant profile before phase 7.
 
 **Recorded in.** DESIGN §11 Money and accounts
 
@@ -373,7 +370,7 @@ The spec requires a dyno that does not sleep (Continue prompts and gift popups m
 
 **Owner.** Undecided; ideas: Yarn Farm, Yarn House, Yarn Bank.
 
-**Decision.** Candidate "Yarniverse" (second round), with a caveat: an app named "Knit Stars and Yarniverse" already exists on the App Store, so Yarniverse is a live brand in the yarn space and needs a trademark check before it is used. "Hooked" stays the codename, repo and EAS slug; `expo.name` follows the store name once App Store Connect confirms it. "Yarn Bank" is the in-game jar (§8), so not that.
+**Decision.** Yarniverse dropped ("Knit Stars and Yarniverse" exists on the App Store). Shortlist from an App Store search on 2026-09-10, none verified in App Store Connect yet: **Yarn Over** (recommended: a real crochet move, short, already the name of the end-of-level bonus, no app with that name found), **Fastened Off** (the win banner, no app found), **Yarn Nook** (ties to the Craft Nook, no app found), **Puff Stitch** (the first special, no app found). Taken: Skein (two apps), Cozy Stitch, Yarniverse. "Hooked" stays the codename, repo and EAS slug; `expo.name` follows the store name once App Store Connect confirms it.
 
 **Recorded in.** Still open, see the top of this file
 
