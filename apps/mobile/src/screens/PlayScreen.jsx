@@ -9,11 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CREAM, PALETTE } from '../art/palette';
 import { goBack } from '../nav';
 import Board from '../game/Board';
-import { level, newSeed } from '../game/sandbox';
+import { boardFor, newSeed } from '../game/sandbox';
 
 const PlayScreen = ({ route }) => {
   const insets = useSafeAreaInsets();
   const seedRef = useRef(route?.params?.seed ?? newSeed());
+  const level = boardFor(route?.params?.board);
   const [arena, setArena] = useState({ width: 0, height: 0 });
 
   const onLayout = useCallback((e) => {

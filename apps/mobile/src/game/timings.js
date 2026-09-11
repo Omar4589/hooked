@@ -49,5 +49,52 @@ export const FALL_OVERSHOOT = 1;
 export const SHUFFLE_OUT_MS = 200;
 export const SHUFFLE_IN_MS = 200;
 
+/**
+ * A blast takes as long as its size (§16). The whole firing fits in this window: the special
+ * pulses, then the balls pop one ring at a time outward from it, the furthest landing exactly at
+ * the end.
+ */
+export const BLAST_MS = Object.freeze({
+  puff: 150,
+  bobble: 250,
+  popcorn: 350,
+  yarnbomb: 450,
+  hook: 250,
+});
+
+/** "every ball of that color pops in a wave outward from the frog" (§16). */
+export const RIP_MS = 400;
+
+/** How long one ball takes to pop inside a wave. */
+export const POP_MS = CLEAR_MS;
+
+/** How far into a firing the special itself swells before it goes, as a fraction of the window. */
+export const PULSE_SHARE = 1 / 3;
+
+/** How big that swell is. */
+export const PULSE_SCALE = 1.25;
+
+/**
+ * How hard the board shakes for each size, in cells. A puff is a pop, not an explosion, so it
+ * does not shake at all; the bigger blasts do, which is §16's "bigger radius, bigger ring,
+ * longer shake" without a ring to draw yet.
+ */
+export const BLAST_SHAKE = Object.freeze({
+  puff: 0,
+  bobble: 0.06,
+  popcorn: 0.1,
+  yarnbomb: 0.16,
+  hook: 0.08,
+});
+
+/** How long one shake wobble takes; the blast's window holds as many as it fits. */
+export const SHAKE_STEP_MS = 50;
+
+/** The frog or the hook hops onto its cell (§16). */
+export const METER_DROP_MS = 300;
+
+/** The meter readout fills a notch (§16). It runs off the board's own clock, not the move's. */
+export const METER_MS = 150;
+
 /** How late the JS safety net fires when the UI clock's own callback never arrives. */
 export const FINISH_SLACK_MS = 250;

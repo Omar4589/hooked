@@ -5,8 +5,15 @@
   "project": "sandbox",
   "hard": false,
   "moves": 999,
-  "colors": ["olive", "mustard", "blush", "rust", "lavender", "cocoa"],
-  "meter": "none",
+  "colors": [
+    "olive",
+    "mustard",
+    "blush",
+    "rust",
+    "lavender",
+    "cocoa"
+  ],
+  "meter": "frog",
   "cells": [
     "ooooooooo",
     "ooooooooo",
@@ -19,5 +26,27 @@
     "ooooooooo"
   ],
   "goals": [],
-  "coins": 0
+  "coins": 0,
+  "presets": [
+    {
+      "x": 0,
+      "y": 0,
+      "piece": "puff"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "piece": "bobble"
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "piece": "popcorn"
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "piece": "yarnbomb"
+    }
+  ]
 }

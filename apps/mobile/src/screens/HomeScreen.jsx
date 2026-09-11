@@ -13,15 +13,15 @@ import { API_BASE_URL } from '../config';
 // landscape. The Room replaces it as the home screen in phase 6.
 const HomeScreen = () => {
   const insets = useSafeAreaInsets();
-  const onPlay = () => {
+  const onPlay = (board) => () => {
     const seed = newSeed();
-    console.log(`[play] seed ${seed}`);
-    navigate('Play', { seed });
+    console.log(`[play] ${board} board, seed ${seed}`);
+    navigate('Play', { seed, board });
   };
   return (
     <View style={[styles.screen, { paddingLeft: insets.left, paddingRight: insets.right }]}>
       <Text style={styles.title}>Yarn Over</Text>
-      <Text style={styles.subtitle}>A crochet match-3 · phase 2</Text>
+      <Text style={styles.subtitle}>A crochet match-3 · phase 3</Text>
       <View style={styles.palette}>
         {COLORS.map((color) => (
           <View
@@ -31,13 +31,22 @@ const HomeScreen = () => {
           />
         ))}
       </View>
-      <Pressable
-        onPress={onPlay}
-        accessibilityRole="button"
-        style={({ pressed }) => [styles.play, pressed && styles.playPressed]}
-      >
-        <Text style={styles.playText}>Play</Text>
-      </Pressable>
+      <View style={styles.playRow}>
+        <Pressable
+          onPress={onPlay('frog')}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.play, pressed && styles.playPressed]}
+        >
+          <Text style={styles.playText}>Play</Text>
+        </Pressable>
+        <Pressable
+          onPress={onPlay('hook')}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.play, styles.playHook, pressed && styles.playPressed]}
+        >
+          <Text style={styles.playText}>Play hook</Text>
+        </Pressable>
+      </View>
       <Text style={styles.meta}>
         engine {ENGINE_VERSION} · {listLevels().length} levels · app {Constants.expoConfig?.version}
       </Text>
@@ -67,12 +76,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  playRow: { flexDirection: 'row', gap: 12 },
   play: {
     paddingVertical: 10,
     paddingHorizontal: 28,
     borderRadius: 22,
     backgroundColor: PALETTE.rust,
   },
+  playHook: { backgroundColor: PALETTE.lavender },
   playPressed: { opacity: 0.8 },
   playText: { color: CREAM, fontSize: 18, fontWeight: '700' },
   meta: { fontSize: 12, color: PALETTE.cocoa, opacity: 0.6 },

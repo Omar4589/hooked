@@ -282,7 +282,7 @@ test('an empty stream and an unknown step: nothing to play, or a loud failure', 
   assert.equal(move.total, 0);
   assert.equal(move.tracks.size, 0);
   assert.deepEqual(colors(move.model), colors(model));
-  assert.throws(() => buildMove(model, [{ type: 'blast', pos: P(0, 0) }]), /unsupported/);
+  assert.throws(() => buildMove(model, [{ type: 'mothSpread', from: P(0, 0) }]), /unsupported/);
 });
 
 test('buildMove never touches the model it was given', () => {
@@ -329,4 +329,117 @@ test('an empty or blocked cell is never quiet: there is nothing there to swipe',
   const model = modelOf(['o. __', '.. r.']);
   const quiet = quietCells(model, buildMove(model, []));
   assert.deepEqual([...quiet].sort(), ['0,0', '1,1']);
+});
+
+test('a blast swells its special, then pops the board outward from it', () => {
+  const model = modelOf(['o. o. o. o. o.', 'o. o. o. o. o.', 'o. o. oP o. o.']);
+  const move = buildMove(model, [
+    {
+      type: 'blast',
+      pos: P(2, 2),
+      special: 'puff',
+      radius: 1,
+      orientation: null,
+      cells: [P(2, 1), P(1, 2), P(2, 2), P(3, 2)],
+      cascade: 1,
+      points: 60,
+      combo: false,
+    },
+  ]);
+  assert.equal(move.total, 150);
+  const origin = move.tracks.get(model.grid[2][2]);
+  assert.equal(origin.scale[0].to > 1, true); // it swells first
+  assert.equal(origin.scale[0].at, 0);
+  assert.equal(origin.scale[1].to, 0);
+  assert.equal(origin.scale[1].at + origin.scale[1].duration, 150);
+  // a neighbour pops later than the origin starts, and lands exactly as the window closes
+  const neighbour = move.tracks.get(model.grid[2][1]);
+  assert.ok(neighbour.scale[0].at > 0);
+  assert.equal(neighbour.scale[0].at + neighbour.scale[0].duration, 150);
+  assert.equal(move.removed.length, 4);
+  assert.equal(move.model.pieces.size, model.pieces.size - 4);
+});
+
+test('a bigger blast shakes the board, a puff does not', () => {
+  const model = modelOf(['o. o. o.', 'o. oB o.', 'o. o. o.']);
+  const blast = (special) => ({
+    type: 'blast',
+    pos: P(1, 1),
+    special,
+    radius: 2,
+    orientation: null,
+    cells: [P(1, 1), P(0, 1)],
+    cascade: 1,
+    points: 40,
+    combo: false,
+  });
+  assert.deepEqual(buildMove(model, [blast('puff')]).shakes, []);
+  const shaken = buildMove(model, [blast('yarnbomb')]);
+  assert.equal(shaken.shakes.length, 1);
+  assert.deepEqual(
+    { at: shaken.shakes[0].at, ends: shaken.shakes[0].at + shaken.shakes[0].duration },
+    { at: 0, ends: shaken.total },
+  );
+});
+
+test('a firing that finds its area already empty costs nothing and shows nothing', () => {
+  const model = modelOf(['o. o.']);
+  const move = buildMove(model, [
+    {
+      type: 'blast',
+      pos: P(0, 0),
+      special: 'bobble',
+      radius: 2,
+      orientation: null,
+      cells: [],
+      cascade: 1,
+      points: 0,
+      combo: false,
+    },
+  ]);
+  assert.equal(move.total, 0);
+  assert.equal(move.tracks.size, 0);
+  assert.deepEqual(move.shakes, []);
+});
+
+test('a frog rip pops its colour outward from the frog over the rip window', () => {
+  const model = modelOf(['o. m. o.', 'F. o. m.']);
+  const move = buildMove(model, [
+    {
+      type: 'frogRip',
+      pos: P(0, 1),
+      color: 'olive',
+      cells: [P(0, 0), P(2, 0), P(0, 1), P(1, 1)],
+      cascade: 1,
+      points: 560,
+      combo: false,
+    },
+  ]);
+  assert.equal(move.total, 400);
+  assert.equal(move.removed.length, 4);
+  const far = move.tracks.get(model.grid[0][2]);
+  assert.equal(far.scale[0].at + far.scale[0].duration, 400);
+});
+
+test('a meter drop pops the ball it replaces and springs the new piece in', () => {
+  const model = modelOf(['o. m.', 'b. r.']);
+  const move = buildMove(model, [{ type: 'meterDrop', pos: P(1, 0), piece: { kind: 'frog' } }]);
+  assert.equal(move.total, 300);
+  assert.deepEqual(
+    move.removed.map((r) => r.id),
+    [model.grid[0][1]],
+  );
+  const landed = move.mounts[0];
+  assert.equal(move.model.pieces.get(landed).piece.kind, 'frog');
+  assert.equal(move.tracks.get(landed).initial.scale, 0);
+  assert.equal(move.tracks.get(landed).scale[0].to, 1);
+});
+
+test('a meter step records the charge and costs the move no time at all', () => {
+  const model = modelOf(['o. m.']);
+  const move = buildMove(model, [{ type: 'meter', charge: 7, full: 10 }]);
+  assert.equal(move.meter, 7);
+  assert.equal(move.total, 0);
+  assert.equal(move.tracks.size, 0);
+  assert.equal(buildMove(model, []).meter, null);
 });

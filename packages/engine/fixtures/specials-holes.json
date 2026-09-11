@@ -1,0 +1,20 @@
+{
+  "id": 9010,
+  "book": 0,
+  "name": "Specials over holes (7x7)",
+  "project": "specials_holes",
+  "hard": false,
+  "moves": 40,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooooo", "oo...oo", "ooooooo", "ooboooo", "ooooooo", "oo...oo", "ooooooo"],
+  "presets": [
+    { "x": 0, "y": 0, "piece": "puff" },
+    { "x": 6, "y": 0, "piece": "bobble" },
+    { "x": 0, "y": 6, "piece": "popcorn" },
+    { "x": 6, "y": 6, "piece": "yarnbomb" },
+    { "x": 3, "y": 2, "piece": "frog" }
+  ],
+  "goals": [],
+  "coins": 0
+}

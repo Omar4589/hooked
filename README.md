@@ -4,7 +4,8 @@ Store name **Yarn Over**; "Hooked" is the codename used for the repo, the EAS sl
 
 A cozy match-3 where every level is a crochet project and everything you make decorates
 your room. Modeled on Fishdom, themed around crochet, built to ship. The design is in
-[docs/DESIGN.md](docs/DESIGN.md); the working rules in [CLAUDE.md](CLAUDE.md).
+[docs/DESIGN.md](docs/DESIGN.md); how the game actually plays, in plain English, is in
+[docs/RULES.md](docs/RULES.md); the working rules for building it in [CLAUDE.md](CLAUDE.md).
 
 ## Layout
 
@@ -43,7 +44,9 @@ through Expo Go on 2026-09-10. Phase 1 (the engine) is built: `packages/engine` 
 boards, detects matches, applies gravity and cascades, scores, and plays a level in the terminal
 with `npm run play`. Phase 2 (the bare board) is built: Home → Play opens a 9×9 sandbox board in
 Expo Go, swipe to swap, with the step player animating swaps, clears, falls, spawns and
-shuffles (`npm run test:mobile` checks its maths against the engine). Not yet done: specials and
-the meter (phase 3), the level rules and HUD (phase 4), the Heroku app and Atlas cluster (phase
-7). Phases 1–9 and their "done when" are in DESIGN.md §11; phase 0's is the setup prompt in
+shuffles (`npm run test:mobile` checks its maths against the engine). Phase 3 (specials and the
+meter) is built: puffs, bobbles, popcorn and yarn bombs fire by swap, double-tap, chain and
+match, combos make one bigger blast, the frog meter fills and drops the frog, and hook levels
+sweep rows and columns. Not yet done: the level rules and HUD (phase 4), the Heroku app and
+Atlas cluster (phase 7). Phases 1–9 and their "done when" are in DESIGN.md §11; phase 0's is the setup prompt in
 docs/PROMPTS.md.

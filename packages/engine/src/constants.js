@@ -37,7 +37,7 @@
  */
 
 /** Bumped by hand when the step format or the game API changes shape. */
-export const ENGINE_VERSION = '0.2.0';
+export const ENGINE_VERSION = '0.3.0';
 
 /** The six yarn colors, in palette order. @type {readonly Color[]} */
 export const COLORS = Object.freeze(['olive', 'mustard', 'blush', 'rust', 'lavender', 'cocoa']);
@@ -56,6 +56,21 @@ export const BLOCKERS = Object.freeze(['tangle', 'knot', 'moth']);
 
 /** Goal types a level may list (DESIGN.md §6, §10). @type {readonly GoalType[]} */
 export const GOALS = Object.freeze(['stitch', 'collect', 'beads', 'clear', 'buried']);
+
+/** Blast radius per special (DESIGN.md §4); the Hook has none, it sweeps lines. */
+export const BLAST_RADII = Object.freeze({ puff: 1, bobble: 2, popcorn: 3, yarnbomb: 4 });
+
+/** A combo fires at max(r1, r2) + 1; at this radius and beyond it takes the whole board. */
+export const COMBO_BOARD_RADIUS = 5;
+
+/** Which lines the Hook sweeps; 'both' is the Hook + Hook combo. */
+export const HOOK_ORIENTATIONS = Object.freeze(['rows', 'cols', 'both']);
+
+/** Meter charge per special that fires (§4). The Hook fires but never charges. */
+export const METER_CHARGE = Object.freeze({ puff: 1, bobble: 2, popcorn: 3, yarnbomb: 4, hook: 0 });
+
+/** Added once per wave in which two or more charging specials fire (§4). */
+export const METER_MULTI_BONUS = 2;
 
 /** Board size ceiling (DESIGN.md §3). */
 export const MAX_BOARD_SIZE = 9;
@@ -79,6 +94,13 @@ export const MAX_CASCADE_MULTIPLIER = 5;
 
 /** Safety bound on cascades in one move; a level that exceeds it is an authoring bug. */
 export const MAX_CASCADES = 100;
+
+/**
+ * Safety bound on blast waves within one cascade. A correct wave takes at least one piece per
+ * round from a board of at most MAX_BOARD_SIZE^2 cells and cannot create specials, so this is
+ * unreachable; reaching it means an order was seeded twice.
+ */
+export const MAX_BLAST_WAVES = MAX_BOARD_SIZE * MAX_BOARD_SIZE;
 
 /** Charge at which the frog (or hook) meter drops its piece (DESIGN.md §4). */
 export const METER_FULL = 10;

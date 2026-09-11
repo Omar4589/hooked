@@ -133,6 +133,20 @@ export const describeStep = (step) => {
       return `fall: ${step.moves.length} pieces`;
     case 'spawn':
       return `spawn: ${step.cells.length} pieces`;
+    case 'blast': {
+      const shape = step.special === 'hook' ? ` ${step.orientation}` : '';
+      const combo = step.combo ? ' combo' : '';
+      const where = formatPos(step.pos);
+      return `blast ${step.special}${shape}${combo} at ${where}: ${step.cells.length} cells (+${step.points})`;
+    }
+    case 'frogRip': {
+      const where = formatPos(step.pos);
+      return `frogRip ${step.color} at ${where}: ${step.cells.length} cells (+${step.points})`;
+    }
+    case 'meter':
+      return `meter: ${step.charge}/${step.full}`;
+    case 'meterDrop':
+      return `meterDrop: ${step.piece.special ?? step.piece.kind} at ${formatPos(step.pos)}`;
     case 'shuffle':
       return 'shuffle: untangling...';
     default:

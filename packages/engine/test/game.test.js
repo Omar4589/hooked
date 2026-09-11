@@ -2,9 +2,10 @@ import { createGame } from '../src/game.js';
 import { applySteps } from '../src/replay.js';
 import { createRng } from '../src/rng.js';
 import { findMatches } from '../src/match.js';
-import { listValidMoves, canSwap, wouldMatch } from '../src/moves.js';
+import { isDeadBoard, listValidMoves, canSwap, wouldMatch } from '../src/moves.js';
 import { movablePositions } from '../src/generate.js';
 import { pieceAt, cloneBoard } from '../src/board.js';
+import { parseBoard } from '../src/text.js';
 import { loadFixture, seeds } from './helpers/fixtures.js';
 
 const P = (x, y) => ({ x, y });
@@ -121,9 +122,14 @@ test('steps never alias the live board', () => {
   }
 });
 
-test('tap and useBooster are not available until their phases', () => {
+test('a tap on a plain ball does nothing and costs nothing; useBooster still waits for phase 4', () => {
   const game = createGame(loadFixture('coaster-5x5'), 1);
-  expect(() => game.tap(P(1, 1))).toThrow(/phase 3/);
+  const before = game.state();
+  expect(game.tap(P(2, 2))).toEqual({ steps: [] });
+  expect(game.state().moves).toBe(before.moves);
+  expect(game.state().board).toStrictEqual(before.board);
+  expect(() => game.tap({ x: 1.5, y: 1 })).toThrow(/tap: pos must be an integer/);
+  expect(() => game.tap(P(99, 1))).toThrow(/tap: pos \(99,1\) is off the board/);
   expect(() => game.useBooster('scissors', P(1, 1))).toThrow(/phase 4/);
 });
 
@@ -169,14 +175,14 @@ test('the game is lost when the moves run out, and further swaps do nothing', ()
   expect(() => game.swap(P(1, 1), P(9, 9))).toThrow(/off the board/);
 });
 
-test('state().score is the sum of the points of every clear step', () => {
+test('state().score is the sum of the points of every step that scores', () => {
   for (const seed of seeds(5)) {
     const game = createGame(loadFixture('square-7x7'), seed);
     const bot = createRng(`score/${seed}`);
     let total = 0;
     for (let i = 0; i < 10 && game.state().status === 'playing'; i += 1) {
       const { steps } = game.swap(...bot.pick(game.validMoves()));
-      total += steps.filter((s) => s.type === 'clear').reduce((sum, s) => sum + s.points, 0);
+      total += steps.reduce((sum, s) => sum + (s.points === undefined ? 0 : s.points), 0);
       expect(game.state().score).toBe(total);
     }
     expect(total).toBeGreaterThan(0);
@@ -218,19 +224,22 @@ test('a zero-weight color never spawns and never appears on the board', () => {
 });
 
 test('no shuffle is emitted on the losing move, even when it leaves a dead board', () => {
-  const game = createGame(loadFixture('dead-prone-5x5'), 1);
-  const bot = createRng('bot/1');
+  // seed 22 still runs itself out onto a board the player cannot act on, now that specials fire
+  const game = createGame(loadFixture('dead-prone-5x5'), 22);
+  const bot = createRng('bot/22');
   let last = [];
   while (game.state().status === 'playing') {
-    const moves = game.validMoves();
+    // with specials firing, a live board may have no match-making swap left, only a fire-only one
+    const moves = game.validMoves({ specials: true });
     expect(moves.length).toBeGreaterThan(0);
     last = game.swap(...bot.pick(moves)).steps;
   }
   const s = game.state();
   expect(s.status).toBe('lost');
   expect(last.some((step) => step.type === 'shuffle')).toBe(false);
-  // this seed ends on a dead board, which is exactly when a mistaken shuffle would fire
-  expect(listValidMoves(s.board)).toEqual([]);
+  // this seed ends on a board the player cannot act on, which is exactly when a mistaken
+  // shuffle would fire
+  expect(isDeadBoard(s.board)).toBe(true);
 });
 
 test('refill honours the level weights: spawned lavender outnumbers spawned olive on spawners-weights', () => {
@@ -258,7 +267,7 @@ test('shuffles happen on the dead-prone board and always land on a playable perm
     const bot = createRng(`bot/${seed}`);
     for (let i = 0; i < 10 && game.state().status === 'playing'; i += 1) {
       const before = game.state().board;
-      const moves = game.validMoves();
+      const moves = game.validMoves({ specials: true });
       expect(moves.length).toBeGreaterThan(0);
       const { steps } = game.swap(...bot.pick(moves));
       const idx = steps.findIndex((s) => s.type === 'shuffle');
@@ -269,7 +278,7 @@ test('shuffles happen on the dead-prone board and always land on a playable perm
       expect(shuffled).toStrictEqual(game.state().board);
       expect(findMatches(shuffled)).toEqual([]);
       expect(listValidMoves(shuffled).length).toBeGreaterThan(0);
-      expect(listValidMoves(unshuffled)).toEqual([]);
+      expect(isDeadBoard(unshuffled)).toBe(true);
       const bag = (b) =>
         movablePositions(b)
           .map((p) => JSON.stringify(pieceAt(b, p)))
@@ -281,7 +290,7 @@ test('shuffles happen on the dead-prone board and always land on a playable perm
   expect(shuffles.length).toBeGreaterThan(0);
 });
 
-test('a fire-only swap exchanges the pieces and spends a move until phase 3', () => {
+test('a fire-only swap fires the special instead of just exchanging the pieces', () => {
   // Find a seed where the preset puff at (6,0) has a neighbour it can swap with and no match
   // results, so the only thing that makes the swap legal is the special.
   let found = null;
@@ -298,14 +307,109 @@ test('a fire-only swap exchanges the pieces and spends a move until phase 3', ()
   expect(found).not.toBeNull();
   const { game, b } = found;
   const before = game.state();
-  const puff = pieceAt(before.board, P(6, 0));
-  const other = pieceAt(before.board, b);
-  expect(puff.special).toBe('puff');
+  expect(pieceAt(before.board, P(6, 0)).special).toBe('puff');
   const { steps } = game.swap(P(6, 0), b);
-  expect(steps).toEqual([{ type: 'swap', a: P(6, 0), b, illegal: false }]);
   const after = game.state();
+  expect(steps[0]).toEqual({ type: 'swap', a: P(6, 0), b, illegal: false });
+  const blast = steps.find((s) => s.type === 'blast');
+  expect(blast).toMatchObject({ special: 'puff', pos: b, cascade: 1, combo: false });
+  expect(blast.cells.length).toBeGreaterThan(1);
+  expect(pieceAt(after.board, b)?.special).toBeUndefined(); // the puff is spent, not moved
   expect(after.moves).toBe(before.moves - 1);
-  expect(pieceAt(after.board, b)).toEqual(puff);
-  expect(pieceAt(after.board, P(6, 0))).toEqual(other);
+  expect(after.score).toBeGreaterThan(before.score);
   expect(applySteps(before.board, steps)).toStrictEqual(after.board);
+});
+
+test('a double-tap fires a special in place and spends a move', () => {
+  const game = createGame(loadFixture('blockers-mix'), 1);
+  const before = game.state();
+  expect(pieceAt(before.board, P(6, 0)).special).toBe('puff');
+  const { steps } = game.tap(P(6, 0));
+  const after = game.state();
+  expect(steps[0]).toMatchObject({ type: 'blast', special: 'puff', pos: P(6, 0) });
+  expect(steps[0].cells.map((c) => `${c.x},${c.y}`)).toContain('6,0');
+  expect(after.moves).toBe(before.moves - 1);
+  expect(applySteps(before.board, steps)).toStrictEqual(after.board);
+});
+
+/** Taps whatever can be fired, move after move, until the meter drops its piece. */
+const fireUntilDrop = (game, limit = 30) => {
+  for (let i = 0; i < limit && game.state().status === 'playing'; i += 1) {
+    const board = game.state().board;
+    let target = null;
+    for (let y = 0; y < board.height && target === null; y += 1) {
+      for (let x = 0; x < board.width && target === null; x += 1) {
+        const piece = board.cells[y][x].piece;
+        if (piece !== undefined && (piece.special !== undefined || piece.kind === 'frog')) {
+          target = { x, y };
+        }
+      }
+    }
+    if (target === null) return null;
+    const { steps } = game.tap(target);
+    const dropped = steps.find((s) => s.type === 'meterDrop');
+    if (dropped !== undefined) return dropped;
+  }
+  return null;
+};
+
+test('the meter charges as specials fire, drops its piece at ten and resets', () => {
+  const level = {
+    id: 9999,
+    name: 'meter drop',
+    moves: 50,
+    colors: ['olive', 'mustard', 'blush', 'rust'],
+    meter: 'frog',
+    cells: ['ooooo', 'ooooo', 'ooooo', 'ooooo', 'ooooo'],
+    presets: [
+      { x: 0, y: 0, piece: 'yarnbomb' },
+      { x: 4, y: 4, piece: 'yarnbomb' },
+      { x: 0, y: 4, piece: 'bobble' },
+    ],
+  };
+  const game = createGame(level, 'meter/1');
+  expect(game.state().meter).toEqual({ kind: 'frog', charge: 0, full: 10 });
+  const first = game.tap(P(0, 0));
+  // the bomb's area reaches the bobble, which chains, so the charge is the whole wave's
+  expect(game.state().meter.charge).toBeGreaterThanOrEqual(4);
+  expect(first.steps.find((s) => s.type === 'meter')).toEqual({
+    type: 'meter',
+    charge: game.state().meter.charge,
+    full: 10,
+  });
+  const dropped = fireUntilDrop(game);
+  expect(dropped).not.toBeNull();
+  expect(dropped.piece).toEqual({ kind: 'frog' });
+  expect(game.state().meter.charge).toBeLessThan(10); // the meter reset when it dropped
+});
+
+test('a hook level drops a hook that keeps the colour of the ball it replaces', () => {
+  const level = {
+    id: 9998,
+    name: 'hook drop',
+    moves: 50,
+    colors: ['olive', 'mustard', 'blush', 'rust'],
+    meter: 'hook',
+    cells: ['ooooo', 'ooooo', 'ooooo', 'ooooo', 'ooooo'],
+    presets: [
+      { x: 0, y: 0, piece: 'yarnbomb' },
+      { x: 4, y: 4, piece: 'yarnbomb' },
+      { x: 0, y: 4, piece: 'bobble' },
+    ],
+  };
+  const game = createGame(level, 'hook/1');
+  const dropped = fireUntilDrop(game);
+  expect(dropped).not.toBeNull();
+  expect(dropped.piece.special).toBe('hook');
+  expect(dropped.piece.kind).toBe('yarn');
+  // it rides the ball already there, so a drop can never complete a match on a settled board
+  expect(findMatches(game.state().board)).toEqual([]);
+});
+
+test('a board with a special on it is never dead, so it is never shuffled away', () => {
+  // too small for a 3-match, so there is never a match-making move either way
+  expect(listValidMoves(parseBoard(['oY m.', 'm. o.']))).toEqual([]);
+  expect(isDeadBoard(parseBoard(['oY m.', 'm. o.']))).toBe(false); // the yarn bomb is a move
+  expect(isDeadBoard(parseBoard(['F. m.', 'm. o.']))).toBe(false); // so is the frog
+  expect(isDeadBoard(parseBoard(['o. m.', 'm. o.']))).toBe(true);
 });

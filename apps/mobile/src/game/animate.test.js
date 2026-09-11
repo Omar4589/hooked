@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ease, sampleProp, sampleTrack } from './animate.js';
+import { ease, sampleProp, sampleShake, sampleTrack } from './animate.js';
 import { FALL_OVERSHOOT } from './timings.js';
 
 const NAMES = ['linear', 'in', 'out', 'inOut', 'outBack'];
@@ -90,4 +90,29 @@ test('the sampling functions carry the worklet directive and import no react cod
   const src = readFileSync(new URL('./animate.js', import.meta.url), 'utf8');
   assert.ok(!/from '(react|react-native)/.test(src));
   assert.equal((src.match(/^import /gm) ?? []).length, 1); // timings only
+});
+
+test('the board shake starts and ends at rest and never exceeds its amplitude', () => {
+  const shakes = [{ at: 100, duration: 250, amplitude: 0.1 }];
+  assert.equal(sampleShake(shakes, 0), 0);
+  assert.equal(sampleShake(shakes, 99), 0);
+  assert.equal(sampleShake(shakes, 100), 0);
+  assert.equal(sampleShake(shakes, 350), 0);
+  assert.equal(sampleShake(shakes, 1000), 0);
+  let peak = 0;
+  for (let t = 100; t < 350; t += 1) peak = Math.max(peak, Math.abs(sampleShake(shakes, t)));
+  assert.ok(peak > 0 && peak <= 0.1, `${peak}`);
+});
+
+test('overlapping shakes add, and an empty list is still rest', () => {
+  assert.equal(sampleShake([], 50), 0);
+  const two = [
+    { at: 0, duration: 200, amplitude: 0.1 },
+    { at: 0, duration: 200, amplitude: 0.1 },
+  ];
+  assert.ok(Math.abs(sampleShake(two, 40)) > Math.abs(sampleShake(two.slice(0, 1), 40)));
+});
+
+test('sampleShake carries the worklet directive', () => {
+  assert.ok(sampleShake.toString().includes("'worklet'"));
 });

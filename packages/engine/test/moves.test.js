@@ -1,4 +1,12 @@
-import { firesOnSwap, canSwap, wouldMatch, isLegalSwap, listValidMoves } from '../src/moves.js';
+import {
+  firesOnSwap,
+  canSwap,
+  wouldMatch,
+  isLegalSwap,
+  listValidMoves,
+  isDeadBoard,
+  hasFireable,
+} from '../src/moves.js';
 import { parseBoard, renderBoard } from '../src/text.js';
 import { findMatches } from '../src/match.js';
 
@@ -61,4 +69,14 @@ test('listValidMoves never returns a swap through a hole, tangle, moth, empty ce
   expect(findMatches(board)).toEqual([]);
   expect(wouldMatch(board, { x: 1, y: 2 }, { x: 2, y: 2 })).toBe(false);
   expect(listValidMoves(board)).toEqual([]);
+});
+
+test('a board is only dead when nothing can be swapped and nothing can be fired', () => {
+  // 2x2: too small for any match, so listValidMoves is empty either way
+  expect(isDeadBoard(parseBoard(['o. m.', 'm. o.']))).toBe(true);
+  expect(isDeadBoard(parseBoard(['oP m.', 'm. o.']))).toBe(false);
+  expect(isDeadBoard(parseBoard(['F. m.', 'm. o.']))).toBe(false);
+  expect(hasFireable(parseBoard(['o. m.', 'm. o.']))).toBe(false);
+  expect(hasFireable(parseBoard(['o. m.', 'm. oH']))).toBe(true);
+  expect(hasFireable(parseBoard(['o. m.', 'm. *.']))).toBe(false);
 });

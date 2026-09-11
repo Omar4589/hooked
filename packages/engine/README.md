@@ -20,10 +20,13 @@ const game = createGame(levelJson, seed);   // levelJson: a parsed DESIGN.md §1
 game.state();          // { board: { width, height, cells }, moves, score, coins, meter, goals, status, level }
 game.swap(a, b);       // { steps } — a, b are { x, y }, x = column, y = row, y = 0 at the top
 game.validMoves();     // [[a, b], …] match-making swaps, each pair once, row-major
+game.validMoves({ specials: true });  // and the swaps that only fire a special or the frog
+game.tap(pos);         // { steps } — fires what is at pos, spending a move
 applySteps(board, steps); // the step player's contract: rebuilds the next board from the stream
 ```
 
-`tap` and `useBooster` throw until phases 3 and 4. Same seed + same moves = same boards and steps.
+`game.tap(pos)` fires a special or the frog in place and spends a move; on anything else it
+returns no steps and costs nothing. `useBooster` throws until phase 4. Same seed + same moves = same boards and steps.
 
 ## The step contract (what phase 2's step player consumes)
 
@@ -38,10 +41,16 @@ that under-reports.
 | `clear` | `cells: Pos[]`, `created: [{ pos, piece }]`, `cascade`, `points` | cascade is 1-based; created specials sit on cleared cells |
 | `fall` | `moves: [{ from, to }]` | every moved piece once, straight down, final positions; apply as a batch (lift every `from`, then place every `to`); a special created by the same cascade's `clear` can be a `from` here |
 | `spawn` | `cells: [{ pos, piece }]` | x then y; per run the contiguous empty prefix from the run's top, so the i-th (0-based) of n enters from row `top − (n − i)`, one row above the board for the last one. Where they enter from on screen is the step player's call |
+| `blast` | `pos`, `special`, `radius`, `orientation`, `cells`, `cascade`, `points`, `combo` | a firing: it takes the pieces in `cells` itself. `radius` is null for a hook, `orientation` null for anything else, and both are load-bearing — they are what lets `applySteps` re-derive the area and prove the step neither under- nor over-reports |
+| `frogRip` | `pos`, `color`, `cells`, `cascade`, `points`, `combo` | every ball of that colour plus the frog that fired it |
+| `meter` | `charge`, `full` | the frog or hook meter moved; no board change |
+| `meterDrop` | `pos`, `piece` | the meter's piece replaces the plain ball at `pos` |
 | `shuffle` | `board` | same shape as `state().board`; rebuild every view from it |
 
-Per move: `swap`, then per cascade `clear → fall → spawn` (empty ones omitted), then possibly
-`shuffle`. Reserved types (`STEP_TYPES`) are rejected by `applySteps` until their phase.
+Per move: `swap`, then per cascade `clear` → the firings it set off, breadth-first → `meter` →
+`fall` → `spawn` (empty ones omitted), then possibly `meterDrop` and `shuffle`. A swap or tap
+that only fires a special has no `clear` at all. The score is the sum of `points` over every
+step that carries one. Reserved types (`STEP_TYPES`) are rejected by `applySteps` until their phase.
 
 ## Modules
 

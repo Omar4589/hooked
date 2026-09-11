@@ -3,11 +3,25 @@ import { createGame } from '../src/game.js';
 import { createRng } from '../src/rng.js';
 import { normalizeLevel } from '../src/level.js';
 import { columnRuns, posKey, pieceAt, forEachCell, cellAt } from '../src/board.js';
+import { hasFireable, firesOnSwap } from '../src/moves.js';
 import { findMatches } from '../src/match.js';
 import { parseBoard, renderBoard } from '../src/text.js';
 import { loadFixture, fixtureNames, seeds } from './helpers/fixtures.js';
 
 const P = (x, y) => ({ x, y });
+
+/** The first cell holding something that can be fired, for turns with no swap left. */
+const firstFireable = (board) => {
+  for (let y = 0; y < board.height; y += 1) {
+    for (let x = 0; x < board.width; x += 1) {
+      const cell = board.cells[y][x];
+      if (cell.open && !(cell.tangle > 0) && cell.moth !== true && firesOnSwap(cell.piece)) {
+        return { x, y };
+      }
+    }
+  }
+  return null;
+};
 const yarn = (color, extra = {}) => ({ kind: 'yarn', color, ...extra });
 
 test('replays a legal swap and ignores an illegal one', () => {
@@ -112,8 +126,8 @@ test('a stream that under-reports the engine throws', () => {
   expect(() =>
     applySteps(board, [{ type: 'swap', a: P(0, 0), b: P(0, 1), illegal: false }]),
   ).toThrow(/empty cell/);
-  expect(() => applySteps(board, [{ type: 'blast', pos: P(0, 0) }])).toThrow(
-    /unsupported step type 'blast'/,
+  expect(() => applySteps(board, [{ type: 'mothSpread', from: P(0, 0), to: P(1, 0) }])).toThrow(
+    /unsupported step type 'mothSpread'/,
   );
   expect(() =>
     applySteps(board, [{ type: 'clear', cells: [P(9, 9)], created: [], cascade: 1, points: 0 }]),
@@ -148,24 +162,34 @@ test('completeness: replaying the steps of every move reproduces the engine boar
         const ry = bot.int(before.height);
         const pair = bot.int(2) === 0 ? [P(rx, ry), P(rx + 1, ry)] : [P(rx, ry), P(rx, ry + 1)];
         let steps = [];
+        let tapsThisTurn = 0;
         if (pair[1].x < before.width && pair[1].y < before.height) {
           steps = game.swap(pair[0], pair[1]).steps;
         }
         if (game.state().status === 'playing') {
-          const moves = game.validMoves();
-          expect({ name, seed, hasMove: moves.length > 0 }).toEqual({ name, seed, hasMove: true });
-          steps = steps.concat(game.swap(...bot.pick(moves)).steps);
+          // With specials firing, "the player can act" is the real invariant: a live board may
+          // have no match-making swap left, only one that fires something, or only a tap.
+          const moves = game.validMoves({ specials: true });
+          const canAct = moves.length > 0 || hasFireable(before);
+          expect({ name, seed, canAct }).toEqual({ name, seed, canAct: true });
+          if (moves.length > 0) {
+            steps = steps.concat(game.swap(...bot.pick(moves)).steps);
+          } else {
+            const target = firstFireable(before);
+            const tapped = game.tap(target);
+            if (tapped.steps.length > 0) tapsThisTurn += 1;
+            steps = steps.concat(tapped.steps);
+          }
         }
         const afterState = game.state();
         const after = afterState.board;
         const replayed = applySteps(before, steps);
         expect(replayed).toStrictEqual(after);
-        const points = steps
-          .filter((s) => s.type === 'clear')
-          .reduce((sum, s) => sum + s.points, 0);
+        const points = steps.reduce((sum, s) => sum + (s.points === undefined ? 0 : s.points), 0);
         expect(afterState.score - beforeState.score).toBe(points);
         const legalSwaps = steps.filter((s) => s.type === 'swap' && !s.illegal).length;
-        expect(beforeState.moves - afterState.moves).toBe(legalSwaps);
+        const taps = tapsThisTurn;
+        expect(beforeState.moves - afterState.moves).toBe(legalSwaps + taps);
         // step by step: the board right before each clear must match exactly the cleared cells,
         // which pins the colors of transient pieces (spawned in one cascade, cleared in the next)
         let rolling = before;
@@ -228,12 +252,17 @@ test('completeness: replaying the steps of every move reproduces the engine boar
           return n;
         };
         expect(countAfter('bead')).toBe(count('bead'));
-        expect(countAfter('frog')).toBe(count('frog'));
+        // a frog fires exactly once and is always consumed, and the meter may drop a new one
+        const rips = steps.filter((s) => s.type === 'frogRip').length;
+        const drops = steps.filter((s) => s.type === 'meterDrop' && s.piece.kind === 'frog').length;
+        expect(countAfter('frog')).toBe(count('frog') - rips + drops);
         // knots only leave through a clear
         forEachCell(before, (cell, pos) => {
           if (cell.piece?.knotted && !cellAt(after, pos).piece?.knotted) {
             const cleared = steps.some(
-              (s) => s.type === 'clear' && s.cells.some((c) => c.x === pos.x && c.y === pos.y),
+              (s) =>
+                (s.type === 'clear' || s.type === 'blast' || s.type === 'frogRip') &&
+                s.cells.some((c) => c.x === pos.x && c.y === pos.y),
             );
             expect({ name, seed, pos, cleared }).toEqual({ name, seed, pos, cleared: true });
           }

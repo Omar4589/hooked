@@ -5,14 +5,19 @@
 /** @typedef {import('./constants.js').Pos} Pos */
 
 /**
- * Picks a uniformly random match-making move, or null when there is none.
+ * Picks a uniformly random match-making move, or null when there is none. With `specials` it
+ * also picks swaps that only fire a special or the frog, which is the only way a terminal
+ * playthrough ever sets one off.
  * @param {Rng} rng
+ * @param {{ specials?: boolean }} [options]
  * @returns {(game: Game) => [Pos, Pos] | null}
  */
-export const createRandomBot = (rng) => (game) => {
-  const moves = game.validMoves();
-  return moves.length === 0 ? null : rng.pick(moves);
-};
+export const createRandomBot =
+  (rng, { specials = false } = {}) =>
+  (game) => {
+    const moves = game.validMoves(specials ? { specials: true } : undefined);
+    return moves.length === 0 ? null : rng.pick(moves);
+  };
 
 /**
  * @typedef {Object} PlayOptions

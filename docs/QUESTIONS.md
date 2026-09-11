@@ -574,6 +574,20 @@ The phase-2 prompt says to render a 9x9 board, and nothing in the repo was one: 
 
 </details>
 
+### 35. Phase 3's four scope calls: does a double-tap cost a move, how much meter is on screen, how does a blast read before the art, and how do you try the Hook?
+
+**Owner.** Answered at planning time, 2026-09-11: a double-tap spends a move; a plain placeholder readout; pulse, pop wave and board shake; a second Play button.
+
+**Decision.** (1) Firing in place costs one move, like a swap, so a special stays a decision rather than a free button; the spec never said either way. (2) The frog meter shows as a row of ten pips under the board, deliberately temporary, replaced by the §11 dial when the HUD lands in phase 4–5; without it the frog appears from nowhere and its row of the §4 table cannot be judged. (3) A blast reads as the special swelling, then the balls popping one ring at a time outward from it, then the whole board shaking harder for a bigger blast; §16's drawn ring waits for phase 5 with the art, because it needs a drawing channel outside the piece system and gets clipped at the board edges. (4) Two development boards, one on the frog meter and one on the hook meter, reached by two Play buttons on the placeholder Home screen, so every row of §4 can be tried by hand; Home is rebuilt in phase 6 anyway.
+
+**Recorded in.** docs/DESIGN.md §11 (specials conventions, items 13–14), packages/levels/levels/dev/
+
+<details><summary>Why it was asked</summary>
+
+Phase 3's done-when is "every row of the §4 table works and reads clearly **on my phone**", and three of those rows cannot be judged without something the spec leaves open: the frog's row needs a visible meter, the blast rows need a look that the phase-5 art has not arrived to give, and the Hook's row needs a hook-meter level, of which the repo had none. The move cost is not in the spec at all and changes every level's difficulty, so it is an owner call rather than a default.
+
+</details>
+
 ## Where the spec disagreed with itself
 
 All of these were found while reading and are now resolved in DESIGN.md v0.9.1 and v0.9.2

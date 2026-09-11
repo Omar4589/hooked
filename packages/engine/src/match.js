@@ -1,7 +1,7 @@
 // Match detection: runs of 3+ same-colored yarn in a row or column, grouped into matches when
 // runs share a cell (so an L, T or plus counts by total pieces, DESIGN.md §3).
 
-import { MATCH_SPECIALS } from './constants.js';
+import { COLORS, MATCH_SPECIALS } from './constants.js';
 import { comparePos, posKey, samePos } from './board.js';
 
 /** @typedef {import('./constants.js').Board} Board */
@@ -191,4 +191,39 @@ export const spawnCellFor = (match, swapped = []) => {
   const { cells } = match.runs[0];
   const p = cells[Math.floor((cells.length - 1) / 2)];
   return { x: p.x, y: p.y };
+};
+
+/**
+ * How many balls of each color are on the board, in palette order. Knotted balls and balls
+ * carrying a special count; beads and the frog have no color and do not.
+ * @param {Board} board
+ * @returns {Map<Color, number>}
+ */
+export const colorCounts = (board) => {
+  const counts = new Map();
+  for (const color of COLORS) counts.set(color, 0);
+  for (let y = 0; y < board.height; y += 1) {
+    for (let x = 0; x < board.width; x += 1) {
+      const color = matchColor(board.cells[y][x]);
+      if (color !== null) counts.set(color, counts.get(color) + 1);
+    }
+  }
+  return counts;
+};
+
+/**
+ * The `n` most common colors on the board, ties broken by palette order so the frog is
+ * deterministic without spending an rng draw. Colors with no ball are never returned.
+ * @param {Board} board
+ * @param {number} [n]
+ * @returns {Color[]}
+ */
+export const mostCommonColors = (board, n = 1) => {
+  const counts = colorCounts(board);
+  const present = [];
+  for (const color of COLORS) {
+    if (counts.get(color) > 0) present.push(color);
+  }
+  present.sort((a, b) => counts.get(b) - counts.get(a) || COLORS.indexOf(a) - COLORS.indexOf(b));
+  return present.slice(0, n);
 };

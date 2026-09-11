@@ -83,3 +83,29 @@ export const listValidMoves = (board, { specials = false } = {}) => {
   }
   return moves;
 };
+
+/**
+ * Is there a special or a frog anywhere the player could double-tap? A special hemmed in by
+ * blockers has no swappable neighbour but is still a move (DESIGN.md §4 "double-tap it in place").
+ * @param {Board} board
+ */
+export const hasFireable = (board) => {
+  for (let y = 0; y < board.height; y += 1) {
+    for (let x = 0; x < board.width; x += 1) {
+      const cell = board.cells[y][x];
+      if (cell.open && !(cell.tangle > 0) && cell.moth !== true && firesOnSwap(cell.piece)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+/**
+ * A board is dead only when the player truly cannot act: no match-making swap, no swap that
+ * would fire something, and nothing to tap. A board with a Yarn Bomb on it is never dead, so it
+ * is never shuffled away (DESIGN.md §3 "No valid moves → Untangling…").
+ * @param {Board} board
+ */
+export const isDeadBoard = (board) =>
+  listValidMoves(board, { specials: true }).length === 0 && !hasFireable(board);

@@ -14,7 +14,10 @@ import {
   swapPieces,
 } from './board.js';
 import { generateBoard, shuffleBoard, pickColor } from './generate.js';
-import { isLegalSwap, listValidMoves } from './moves.js';
+import { clonePiece, pieceAt, setPiece } from './board.js';
+import { isDeadBoard, isLegalSwap, listValidMoves } from './moves.js';
+import { swapOrders, tapOrders } from './fire.js';
+import { dropCandidates, dropPiece, meterState } from './meter.js';
 import { resolveMatches } from './resolve.js';
 
 /** @typedef {import('./constants.js').Pos} Pos */
@@ -41,6 +44,7 @@ export const createGame = (levelJson, seed) => {
   const board = generateBoard(level, rng);
   let moves = level.moves;
   let score = 0;
+  let charge = 0;
   let status = 'playing';
 
   const ctx = {
@@ -51,35 +55,62 @@ export const createGame = (levelJson, seed) => {
     addScore: (points) => {
       score += points;
     },
+    // null on a level with no meter, so resolve.js needs to know no meter policy at all.
+    addCharge: (n) => {
+      if (level.meter === 'none') return null;
+      charge += n;
+      return charge;
+    },
   };
-
-  const meterState = () =>
-    level.meter === 'none' ? { kind: 'none' } : { kind: level.meter, charge: 0, full: METER_FULL };
 
   const state = () => ({
     board: cloneBoard(board),
     moves,
     score,
     coins: level.coins,
-    meter: meterState(),
+    meter: meterState(level.meter, charge),
     goals: level.goals.map((g) => ({ ...g })),
     status,
     level: { id: level.id, name: level.name },
   });
 
-  const toPos = (raw, label) => {
+  const toPos = (raw, label, caller = 'swap') => {
     if (
       typeof raw !== 'object' ||
       raw === null ||
       !Number.isInteger(raw.x) ||
       !Number.isInteger(raw.y)
     ) {
-      throw new Error(`swap: ${label} must be an integer {x, y}`);
+      throw new Error(`${caller}: ${label} must be an integer {x, y}`);
     }
     const pos = { x: raw.x, y: raw.y };
     if (!inBounds(board, pos))
-      throw new Error(`swap: ${label} (${pos.x},${pos.y}) is off the board`);
+      throw new Error(`${caller}: ${label} (${pos.x},${pos.y}) is off the board`);
     return pos;
+  };
+
+  /**
+   * What happens once a move's cascades have settled: a full meter drops its piece, and a board
+   * the player cannot act on is shuffled. Shared by swap and tap.
+   * @returns {object[]}
+   */
+  const finishMove = () => {
+    const steps = [];
+    if (level.meter !== 'none' && charge >= METER_FULL) {
+      const candidates = dropCandidates(board);
+      if (candidates.length > 0) {
+        const pos = rng.pick(candidates);
+        const piece = dropPiece(level.meter, pieceAt(board, pos));
+        setPiece(board, pos, piece);
+        charge = 0;
+        steps.push({ type: 'meterDrop', pos: { x: pos.x, y: pos.y }, piece: clonePiece(piece) });
+      }
+    }
+    if (moves > 0 && isDeadBoard(board)) {
+      shuffleBoard(board, level, rng);
+      steps.push({ type: 'shuffle', board: cloneBoard(board) });
+    }
+    return steps;
   };
 
   const swap = (rawA, rawB) => {
@@ -93,25 +124,37 @@ export const createGame = (levelJson, seed) => {
     if (!legal) return { steps };
     swapPieces(board, a, b);
     moves -= 1;
-    steps.push(...resolveMatches(ctx, [a, b]));
-    if (moves > 0 && listValidMoves(board).length === 0) {
-      shuffleBoard(board, level, rng);
-      steps.push({ type: 'shuffle', board: cloneBoard(board) });
-    }
+    // read after the exchange, so each piece is where it landed
+    steps.push(...resolveMatches(ctx, [a, b], swapOrders(board, a, b)));
+    steps.push(...finishMove());
     if (moves === 0) status = 'lost';
     return { steps };
   };
 
-  const tap = () => {
-    throw new Error('game.tap: not until phase 3 (specials)');
+  /**
+   * A double-tap fires a special or the frog in place (DESIGN.md §4), spending a move. A tap on
+   * anything else costs nothing and returns no steps.
+   * @param {Pos} rawPos
+   * @returns {{ steps: object[] }}
+   */
+  const tap = (rawPos) => {
+    const pos = toPos(rawPos, 'pos', 'tap');
+    if (status !== 'playing') return { steps: [] };
+    const orders = tapOrders(board, pos);
+    if (orders.length === 0) return { steps: [] };
+    moves -= 1;
+    const steps = resolveMatches(ctx, [], orders);
+    steps.push(...finishMove());
+    if (moves === 0) status = 'lost';
+    return { steps };
   };
 
   const useBooster = () => {
     throw new Error('game.useBooster: not until phase 4 (boosters)');
   };
 
-  const validMoves = () =>
-    listValidMoves(board).map(([p, q]) => [
+  const validMoves = (options) =>
+    listValidMoves(board, options).map(([p, q]) => [
       { x: p.x, y: p.y },
       { x: q.x, y: q.y },
     ]);

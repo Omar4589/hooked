@@ -9,6 +9,7 @@ import { listLevels } from '../src/index.js';
 
 const read = (rel) => JSON.parse(readFileSync(new URL(rel, import.meta.url), 'utf8'));
 const sandbox = read('../levels/dev/sandbox-9x9.json');
+const hookBoard = read('../levels/dev/sandbox-hook-9x9.json');
 
 test('the sandbox is a full-size open board in every palette color, outside the fixture id range', () => {
   const level = normalizeLevel(sandbox);
@@ -16,19 +17,38 @@ test('the sandbox is a full-size open board in every palette color, outside the 
   expect(level.height).toBe(MAX_BOARD_SIZE);
   expect(level.grid.flat().every((t) => t.open)).toBe(true);
   expect(level.colors).toEqual([...COLORS]);
-  expect(level.meter).toBe('none');
+  expect(level.meter).toBe('frog');
   expect(level.goals).toEqual([]);
   expect(level.moves).toBe(999);
   expect(level.id).toBeGreaterThanOrEqual(9900);
+  // one of each blast, so every row of the §4 table is reachable in the first few moves
+  expect(level.presets.map((p) => p.piece).sort()).toEqual([
+    'bobble',
+    'popcorn',
+    'puff',
+    'yarnbomb',
+  ]);
 });
 
-test('the sandbox plays for every seed: a board with a move on the first try', () => {
-  for (let seed = 1; seed <= 20; seed += 1) {
-    const game = createGame(sandbox, `sandbox/${seed}`);
-    const { board, status } = game.state();
-    expect(status).toBe('playing');
-    expect(board.cells.flat().every((c) => c.open && c.piece?.kind === 'yarn')).toBe(true);
-    expect(game.validMoves().length).toBeGreaterThan(0);
+test('the hook board is the same board on the hook meter', () => {
+  const level = normalizeLevel(hookBoard);
+  expect(level.width).toBe(MAX_BOARD_SIZE);
+  expect(level.meter).toBe('hook');
+  expect(level.colors).toEqual([...COLORS]);
+  expect(level.presets.map((p) => p.piece)).toEqual(['hook']);
+  expect(level.id).not.toBe(normalizeLevel(sandbox).id);
+});
+
+test('both dev boards play for every seed: a board with a move on the first try', () => {
+  for (const board of [sandbox, hookBoard]) {
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const game = createGame(board, `sandbox/${seed}`);
+      const state = game.state();
+      expect(state.status).toBe('playing');
+      expect(state.board.cells.flat().every((c) => c.open && c.piece?.kind === 'yarn')).toBe(true);
+      expect(game.validMoves().length).toBeGreaterThan(0);
+      expect(state.meter.charge).toBe(0);
+    }
   }
 });
 

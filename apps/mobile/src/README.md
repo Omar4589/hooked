@@ -5,7 +5,7 @@ Layout from docs/DESIGN.md §11. Each folder is created when its phase lands; `a
 
 | Folder | Holds | Arrives |
 |---|---|---|
-| `game/` | `Board.jsx`, `Piece.jsx`, the swipe (`useSwipe.js`) and the step player (`move.js` + `animate.js`) now; HUD, GoalsBar and Meter with the level rules | phase 2 (board), phase 4 (HUD) |
+| `game/` | `Board.jsx`, `Piece.jsx`, the gestures (`gestures.js`), the step player (`move.js` + `animate.js`) and a placeholder `Meter.jsx`; the real HUD, GoalsBar and meter dial with the level rules | phase 2 (board), phase 3 (specials), phase 4 (HUD) |
 | `room/` | Room scene, placement, shop, creatures, beauty | phase 6 |
 | `screens/` | `HomeScreen.jsx` and `PlayScreen.jsx` now; Room, Shop, LevelCard, Result, PatternBook, Settings | phase 0 hello world, the board in phase 2, the rest in phases 4–6 |
 | `meta/` | `storage.js` (expo-sqlite/kv-store behind one module), progress store, coins, lives, boosters, streaks, daily basket | phase 6 |

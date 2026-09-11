@@ -9,6 +9,12 @@ export {
   BLOCKERS,
   GOALS,
   MAX_BOARD_SIZE,
+  BLAST_RADII,
+  COMBO_BOARD_RADIUS,
+  HOOK_ORIENTATIONS,
+  METER_CHARGE,
+  METER_MULTI_BONUS,
+  MAX_BLAST_WAVES,
   SCORE,
   MAX_CASCADE_MULTIPLIER,
   MAX_CASCADES,
@@ -24,6 +30,8 @@ export {
 } from './constants.js';
 export { createRng } from './rng.js';
 export { columnRuns } from './board.js';
+export { blastArea, ripArea } from './blast.js';
+export { mostCommonColors } from './match.js';
 export { normalizeLevel } from './level.js';
 export { createGame } from './game.js';
 export { applySteps } from './replay.js';

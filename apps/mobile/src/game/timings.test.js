@@ -21,3 +21,30 @@ test('the tuning knobs are numbers the phone pass can move', () => {
   assert.equal(typeof T.ILLEGAL_SLIDE, 'number');
   assert.ok(T.FINISH_SLACK_MS > 0);
 });
+
+test('the §16 firing durations: puff 150, bobble 250, popcorn 350, yarn bomb 450, hook 250', () => {
+  assert.deepEqual(T.BLAST_MS, {
+    puff: 150,
+    bobble: 250,
+    popcorn: 350,
+    yarnbomb: 450,
+    hook: 250,
+  });
+  assert.equal(T.RIP_MS, 400);
+  assert.equal(T.METER_DROP_MS, 300);
+  assert.equal(T.METER_MS, 150);
+});
+
+test('a pop fits inside every firing window, so the last ball lands as it closes', () => {
+  for (const ms of Object.values(T.BLAST_MS)) assert.ok(ms >= T.POP_MS, `${ms}`);
+  assert.ok(T.RIP_MS >= T.POP_MS);
+  assert.ok(T.PULSE_SHARE > 0 && T.PULSE_SHARE < 1);
+  assert.ok(T.PULSE_SCALE > 1);
+});
+
+test('a puff does not shake the board; the bigger blasts shake harder', () => {
+  assert.equal(T.BLAST_SHAKE.puff, 0);
+  assert.ok(T.BLAST_SHAKE.bobble < T.BLAST_SHAKE.popcorn);
+  assert.ok(T.BLAST_SHAKE.popcorn < T.BLAST_SHAKE.yarnbomb);
+  assert.ok(T.BLAST_SHAKE.yarnbomb < 0.5); // never enough to read as a piece moving
+});

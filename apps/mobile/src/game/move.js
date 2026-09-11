@@ -5,12 +5,19 @@
 
 import { buildModel, cloneModel } from './model.js';
 import {
+  BLAST_MS,
+  BLAST_SHAKE,
   CLEAR_MS,
   CREATE_MS,
   FALL_MS,
   ILLEGAL_BACK_MS,
   ILLEGAL_OUT_MS,
   ILLEGAL_SLIDE,
+  METER_DROP_MS,
+  POP_MS,
+  PULSE_SCALE,
+  PULSE_SHARE,
+  RIP_MS,
   SHUFFLE_IN_MS,
   SHUFFLE_OUT_MS,
   SWAP_MS,
@@ -27,6 +34,8 @@ import {
  * @property {{ id: number, x: number, y: number, piece: object }[]} removed  cleared pieces,
  *   captured where they died, so the board can keep drawing them until they have faded
  * @property {{ at: number, before: Model }|null} shuffle
+ * @property {{ at: number, duration: number, amplitude: number }[]} shakes  board-wide wobbles
+ * @property {number|null} meter  the charge this move ended on, when it changed
  * @property {number} total      how long the move lasts, in milliseconds
  */
 
@@ -44,6 +53,8 @@ export const buildMove = (model, steps, base = 0) => {
   const tracks = new Map();
   const mounts = [];
   const removed = [];
+  const shakes = [];
+  let meter = null;
   let shuffle = null;
   let t = 0;
   let dropped = false;
@@ -224,6 +235,73 @@ export const buildMove = (model, steps, base = 0) => {
         dropped = true;
         break;
       }
+      case 'blast':
+      case 'frogRip': {
+        // The whole firing fits one window: the special swells, then the balls pop one ring at a
+        // time outward from it, the furthest landing exactly as the window closes. A firing that
+        // finds its area already empty has nothing to show and costs no time.
+        if (step.cells.length === 0) break;
+        settle();
+        const duration = step.type === 'blast' ? BLAST_MS[step.special] : RIP_MS;
+        const reach = (pos) => Math.max(Math.abs(pos.x - step.pos.x), Math.abs(pos.y - step.pos.y));
+        let furthest = 0;
+        for (const pos of step.cells) furthest = Math.max(furthest, reach(pos));
+        const spread = Math.max(0, duration - POP_MS);
+        const pulse = Math.round(duration * PULSE_SHARE);
+        for (const pos of step.cells) {
+          const id = idAt(pos, `${step.type} cell`);
+          const track = trackOf(id);
+          const origin = pos.x === step.pos.x && pos.y === step.pos.y;
+          if (origin) {
+            track.scale.push({ at: t, duration: pulse, to: PULSE_SCALE, easing: 'out' });
+            track.scale.push({ at: t + pulse, duration: duration - pulse, to: 0, easing: 'in' });
+            track.opacity.push({
+              at: t + pulse,
+              duration: duration - pulse,
+              to: 0,
+              easing: 'linear',
+            });
+          } else {
+            const at = t + (furthest === 0 ? 0 : (spread * reach(pos)) / furthest);
+            track.scale.push({ at, duration: POP_MS, to: 0, easing: 'in' });
+            track.opacity.push({ at, duration: POP_MS, to: 0, easing: 'linear' });
+          }
+          const entry = m.pieces.get(id);
+          removed.push({ id, x: entry.x, y: entry.y, piece: entry.piece });
+          m.pieces.delete(id);
+          m.grid[pos.y][pos.x] = null;
+        }
+        const amplitude = step.type === 'blast' ? BLAST_SHAKE[step.special] : BLAST_SHAKE.popcorn;
+        if (amplitude > 0) shakes.push({ at: t, duration, amplitude });
+        t += duration;
+        break;
+      }
+      case 'meterDrop': {
+        settle();
+        const id = idAt(step.pos, 'meterDrop cell');
+        const track = trackOf(id);
+        track.scale.push({ at: t, duration: CLEAR_MS, to: 0, easing: 'in' });
+        track.opacity.push({ at: t, duration: CLEAR_MS, to: 0, easing: 'linear' });
+        const entry = m.pieces.get(id);
+        removed.push({ id, x: entry.x, y: entry.y, piece: entry.piece });
+        m.pieces.delete(id);
+        m.grid[step.pos.y][step.pos.x] = null;
+        const landed = mount(step.piece, step.pos, {
+          x: step.pos.x,
+          y: step.pos.y,
+          scale: 0,
+          opacity: 1,
+        });
+        tracks.get(landed).scale.push({ at: t, duration: METER_DROP_MS, to: 1, easing: 'outBack' });
+        t += METER_DROP_MS;
+        break;
+      }
+      case 'meter': {
+        // The readout lives outside the board and runs off its own clock, so the meter costs the
+        // move no time at all.
+        meter = step.charge;
+        break;
+      }
       case 'shuffle': {
         if (index !== steps.length - 1) fail('a shuffle must be the last step of its move');
         settle();
@@ -242,6 +320,8 @@ export const buildMove = (model, steps, base = 0) => {
     tracks,
     mounts,
     removed,
+    shakes,
+    meter,
     shuffle,
     total: shuffle === null ? t : shuffle.at + SHUFFLE_OUT_MS + SHUFFLE_IN_MS,
   };

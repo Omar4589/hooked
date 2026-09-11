@@ -67,7 +67,7 @@ const main = async () => {
   }
   try {
     const game = createGame(level, seed);
-    const bot = createRandomBot(createRng(`${seed}/bot`));
+    const bot = createRandomBot(createRng(`${seed}/bot`), { specials: true });
     const out = (line) => process.stdout.write(`${line}\n`);
     const first = game.state();
     const size = `${first.board.width}x${first.board.height}`;

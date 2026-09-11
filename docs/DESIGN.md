@@ -4,6 +4,8 @@
 
 *A cozy match-3 where every level is a crochet project, and everything you make decorates your room. A tribute to one crocheter, built to ship to everyone.*
 
+> **v0.9.6 (2026-09-11, phase 3 built):** specials fire. The rules are recorded in §11 ("Specials conventions (phase 3)"): `blast` and `frogRip` steps take the pieces they name and carry `points`, a wave runs breadth-first after the clear, the meter charges per wave and drops one piece a move, and `game.tap` fires in place for a move. §4's blast-shape sentence and the Puff row are corrected to the decided plus-of-five and rounded square, and §16 notes that the drawn ring waits for the art in phase 5.
+>
 > **v0.9.5 (2026-09-11, phase 2 built):** the step player's rules are recorded in §11 ("Step player conventions (phase 2)"): one clock per move that every piece samples, input locked while it plays, the swipe decided at activation from the touch-down point, where spawned pieces enter, the shuffle fade, and what a ball carrying a special looks like before phase 3. §16's `clear` particles move to phase 5 and its `spawn` row follows the engine's entry rows. The board on the phone plays `packages/levels/levels/dev/sandbox-9x9.json`, a development level the loader never lists.
 >
 > **v0.9.4 (2026-09-11, phase 1 built):** the engine conventions are recorded in §11 ("Engine conventions (phase 1)"): runs are split by holes only and blockers are floors (§3, §10), the `clear` step carries `points`, `state()` carries `level` and the two `meter` shapes, and §16 gains a `shuffle` row. `packages/engine/fixtures/*.json` are engine test and CLI inputs, not shipped levels.
@@ -69,14 +71,14 @@ Fishdom's power-ups scale with match size and are all area blasts; the color-cle
 | Piece | Made by | When it fires | Fishdom equivalent |
 |---|---|---|---|
 | **Yarn ball** | default | clears when matched | tile |
-| **Puff** | 4 in a match | clears the 4 orthogonally adjacent cells (a plus) | Firecracker |
+| **Puff** | 4 in a match | clears a plus of five: its own cell and the four orthogonally adjacent ones | Firecracker |
 | **Bobble** | 5 in a match | clears everything within a 2-cell radius | Bomb |
 | **Popcorn** | 6 in a match | clears everything within a 3-cell radius | Dynamite |
 | **Yarn Bomb** | 7+ in a match | clears everything within a 4-cell radius | Warhead |
 | **The Frog** | the frog meter fills | hops onto a random open cell; swap it with any adjacent ball to rip out every ball of that color. Crocheters call undoing work "frogging" (rip it, rip it). **Decided:** the frog is its own colorless piece (`kind: 'frog'`), never a special on a ball; fired without a swap partner (double-tap, or caught in a blast) it rips the most common color on the board | Lightning |
 | **The Hook** | replaces the frog meter on some levels | clears 3 rows or 3 columns through its cell; the swap direction picks the orientation, double-tap means rows | Energy Blast |
 
-**Blast shape.** "Radius r" means every cell whose center lies within r cell-widths of the special's center: a rounded square (for r = 2, a 5×5 minus its corners). Puff is the exception and is a plus. **Decided (2026-09-10):** rounded squares stand, so on an open board a Bobble clears 21 cells, a Popcorn 45, a Yarn Bomb 77; a Puff is a plus of 5. A blast passes over holes; a tangle or moth inside its area loses one layer, a knotted ball inside it loses the knot and clears, a bead inside it is untouched. These are our rules; they only have to feel like Fishdom, not match it.
+**Blast shape.** "Radius r" means a **rounded square**: the (2r+1)-square centred on the special minus its four extreme corners. Puff is the exception and is a plus. **Decided (2026-09-10):** rounded squares stand, so on an open board a Bobble clears 21 cells, a Popcorn 45, a Yarn Bomb 77; a Puff is a plus of 5. A blast passes over holes; a tangle or moth inside its area loses one layer, a knotted ball inside it loses the knot and clears, a bead inside it is untouched. These are our rules; they only have to feel like Fishdom, not match it.
 
 **The frog meter.** A small frog with a meter sits under the board. Every special that fires adds charge: Puff +1, Bobble +2, Popcorn +3, Yarn Bomb +4, and several firing in the same step add a +2 bonus. At 10 the frog hops onto a random open cell as a piece and the meter resets. **Decided:** these rates stand. The meter starts empty on every attempt (only the Frog Ready booster fills it); a full meter drops a frog even if one is already on the board; neither a frog rip nor the Hook charges it.
 
@@ -364,8 +366,8 @@ Steps are plain objects. The step player in the UI is one function that switches
 ```js
 { type: 'swap', a, b, illegal }              // illegal → animate and snap back
 { type: 'clear', cells, created, cascade, points }   // cells: Pos[]; created: [{ pos, piece }]; cascade 1-based; points this step scored
-{ type: 'blast', pos, special, cells }       // a puff / bobble / popcorn / yarn bomb / hook firing
-{ type: 'frogRip', pos, color, cells }       // the frog ripping out a color
+{ type: 'blast', pos, special, radius, orientation, cells, cascade, points, combo }  // a firing
+{ type: 'frogRip', pos, color, cells, cascade, points, combo }   // the frog ripping out a color
 { type: 'meter', charge, full }              // frog (or hook) meter changed
 { type: 'meterDrop', pos, piece }            // the frog or hook lands on the board
 { type: 'blocker', pos, kind, layersLeft }   // kind: 'tangle' | 'knot' | 'moth' | 'stitch'
@@ -462,11 +464,28 @@ hooked/                     monorepo, same tooling as canvass-app
 12. After every move the view's board is compared with the engine's. They must match cell for cell; a mismatch warns in development and rebuilds from the engine rather than playing on from a wrong picture.
 13. Deferred, with nothing in phase 2 depending on them: the ~5 s idle hint (§3), the clear particles (§16), the HUD, sounds and haptics, win and lose, and honouring Reduce Motion.
 
+**Specials conventions (phase 3, decided 2026-09-11).** How the engine fires what §4 decided, and how the step player shows it. Same rule as the lists above.
+
+1. `blast` and `frogRip` steps take the pieces they name and carry `points`, rather than folding their cells into a `clear`. A `clear`'s cells stay exactly the match union, and each firing is a self-contained "go off here, take these". The score is the sum of `points` over every step that has one.
+2. Inside a cascade: `clear` (match cells taken, created specials placed), then one step per firing breadth-first wave by wave, then `meter`, then `fall` and `spawn`. A swap or tap that only fires has no `clear` at all. A wave never advances the cascade, so everything it takes scores at that cascade's multiplier.
+3. A firing's cells are computed against the live board at the moment it goes off and removed before the next one runs, so no cell is ever named twice in a cascade and a firing whose area was already emptied is still a legal step with no cells. `applySteps` re-derives every firing's geometry from its own fields, which is why `radius` and `orientation` are on the step.
+4. A special included in a match fires, and it is read while it is still standing there: the clear removes it, and the special that match creates often lands on the same cell. A special created by a cascade can be caught by that cascade's own wave.
+5. A blast takes yarn balls including knotted ones, takes and fires the specials and frogs it covers, and skips beads. A rip takes every ball of its colour, knotted ones included, plus the frog that fired it. A piece leaves the board through exactly one step.
+6. Tangles, moths and stitch squares are phase 4: the `damage` hook now also receives each blast's full area, because a blocker inside a ring holds no piece and can be found no other way.
+7. The meter charges per wave: the specials it consumed, plus 2 once when two or more *charging* specials fire together. The Hook fires but never charges, and a rip never charges. One `meter` step per cascade in which the charge moved.
+8. At ten or more the meter drops one piece per move, onto a cell holding a plain yarn ball, and resets to zero. The frog replaces that ball; the Hook rides it and keeps its colour, so a drop can never complete a match. With no plain ball to replace, nothing drops and the charge waits.
+9. "The most common colour" counts every yarn ball, ties broken by palette order, read at the instant the frog is set off. No random draw: the only new one in the phase is where the meter drops.
+10. `game.tap(pos)` fires a special or the frog in place and spends a move; on anything else it costs nothing and returns no steps. Malformed coordinates throw, exactly like `swap`.
+11. A combo centres on the cell the player swiped into; a lone special fires from the cell it landed on. A horizontal swap sweeps the Hook across rows, a vertical one down columns, and a double-tap or a chained Hook sweeps rows.
+12. A board is dead only when the player truly cannot act: no match-making swap, no swap that fires, and nothing to tap. A board with a special on it is never shuffled away. `game.validMoves()` still means match-making swaps and takes the same options as `listValidMoves`.
+13. On screen a firing is one window (§16's duration for its size): the special swells, then the balls pop one ring at a time outward from it, the furthest landing as the window closes, and the whole board shakes harder for a bigger blast. A firing with no cells shows nothing and costs no time. The meter is a readout outside the board and costs the move no time at all.
+14. Until the art lands in phase 5, a ball carrying a special is its circle with a letter on it (P, B, C, Y, H) and the frog is a circle marked F; the frog meter is a row of pips under the board, not the §11 dial.
+
 **Build order.** Each phase has a "done when" so you know when to move on.
 
 1. **Engine, no screen.** `packages/engine` as a pure JS package with Jest tests: board generation with no starting matches, match detection, swap legality, gravity and refill, cascades, scoring. Plus a small node script that plays random moves and prints the board as text. *Done when the tests pass and a text board plays itself in the terminal.* *(Built 2026-09-11: `npm run play -- packages/engine/fixtures/coaster-5x5.json`.)*
 2. **Bare board on your phone.** `apps/mobile` (Expo). Placeholder pieces (colored circles in the six palette colors), swipe to swap, the step player animating clears, falls and spawns. No backgrounds, no HUD. *Done when you can play on your own phone and it feels smooth.* *(Built 2026-09-11: Home → Play on the sandbox board; `npm run test:mobile`.)*
-3. **Specials and the meter.** Puff, Bobble, Popcorn, Yarn Bomb, the frog meter and the Hook, firing by swap, double-tap and chain, each with a big visible blast. The rules in §4 were settled by decision on 2026-09-10; no Fishdom session is needed. *Done when every row of the table in §4 works and reads clearly.*
+3. **Specials and the meter.** Puff, Bobble, Popcorn, Yarn Bomb, the frog meter and the Hook, firing by swap, double-tap and chain, each with a big visible blast. The rules in §4 were settled by decision on 2026-09-10; no Fishdom session is needed. *Done when every row of the table in §4 works and reads clearly.* *(Built 2026-09-11.)*
 4. **Level rules.** JSON loader, the five goal types, the three blockers, the goals bar, move counter, win/lose, Yarn Over with coins. Three hand-written test levels. *Done when you can load a level file, win it, lose it, and watch stitch squares fill in.*
 5. **Vertical slice: finish level 1 completely.** Art enters here. Real SVG yarn balls and specials in her palette, the level card, HUD, win screen with the project illustration, sounds, haptics. *Done when you'd hand her the phone with only this level on it.*
 6. **Book 1 and the Craft Nook end to end.** The room as home screen, the shop, placing and moving decor, beauty stars, three creatures with idle animations, projects placing themselves, save/load, lives, boosters, win streak, daily basket, Pattern Book. Author levels 1–15 per `docs/LEVELS-BOOK1.md` ("Twelve Coasters" as the finale) and tune them with bot sims. *Done when Book 1 plays start to finish, the Nook reaches 3 stars, and everything survives an app restart.*
@@ -597,7 +616,7 @@ Step → animation (starting values; tune by feel):
 | `swap` | both pieces slide to each other's cell; illegal swaps slide out and bounce back | 150 ms (2×120 ms if illegal) |
 | `clear` | pieces scale to 0 and fade; 6–8 tiny yarn-fluff particles fly outward (the particles arrive with the art in phase 5) | 120 ms |
 | `blast` puff | quick pop, a small plus-shaped puff of fluff | 150 ms |
-| `blast` bobble / popcorn / yarn bomb | scale pulse, then a ring expands to the blast radius; pieces pop as the ring reaches them. Bigger radius, bigger ring, longer shake | 250 / 350 / 450 ms |
+| `blast` bobble / popcorn / yarn bomb | scale pulse, then a ring expands to the blast radius; pieces pop as the ring reaches them. Bigger radius, bigger ring, longer shake. From phase 3 the pulse, the outward pop wave and a board shake that grows with the size carry it; the drawn ring arrives with the art in phase 5 | 250 / 350 / 450 ms |
 | `blast` hook | three streaks sweep along the rows or columns | 250 ms |
 | `frogRip` | frog hops in place, tongue flick, every ball of that color pops in a wave outward from the frog | 400 ms |
 | `meter` | the meter fills a notch; the frog wiggles when it's full | 150 ms |

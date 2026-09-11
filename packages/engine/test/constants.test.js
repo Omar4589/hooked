@@ -18,6 +18,12 @@ import {
   CELL_LEGEND,
   STITCH_LEGEND,
   TEXT_LEGEND,
+  BLAST_RADII,
+  COMBO_BOARD_RADIUS,
+  HOOK_ORIENTATIONS,
+  METER_CHARGE,
+  METER_MULTI_BONUS,
+  MAX_BLAST_WAVES,
 } from '../src/index.js';
 
 test('the six yarn colors, in palette order', () => {
@@ -37,8 +43,8 @@ test('the frog is a piece kind, never a special', () => {
   expect(PRESET_PIECES).toEqual([...SPECIALS, 'frog']);
 });
 
-test('engine version is 0.2.0 and the board ceiling is 9', () => {
-  expect(ENGINE_VERSION).toBe('0.2.0');
+test('engine version is 0.3.0 and the board ceiling is 9', () => {
+  expect(ENGINE_VERSION).toBe('0.3.0');
   expect(MAX_BOARD_SIZE).toBe(9);
 });
 
@@ -113,5 +119,17 @@ test('the name lists and tables are frozen', () => {
     TEXT_LEGEND,
   ]) {
     expect(Object.isFrozen(v)).toBe(true);
+  }
+});
+
+test('the blast radii, the combo ceiling and the meter rates are the §4 numbers', () => {
+  expect(BLAST_RADII).toEqual({ puff: 1, bobble: 2, popcorn: 3, yarnbomb: 4 });
+  expect(COMBO_BOARD_RADIUS).toBe(5);
+  expect(HOOK_ORIENTATIONS).toEqual(['rows', 'cols', 'both']);
+  expect(METER_CHARGE).toEqual({ puff: 1, bobble: 2, popcorn: 3, yarnbomb: 4, hook: 0 });
+  expect(METER_MULTI_BONUS).toBe(2);
+  expect(MAX_BLAST_WAVES).toBe(MAX_BOARD_SIZE * MAX_BOARD_SIZE);
+  for (const table of [BLAST_RADII, HOOK_ORIENTATIONS, METER_CHARGE]) {
+    expect(Object.isFrozen(table)).toBe(true);
   }
 });

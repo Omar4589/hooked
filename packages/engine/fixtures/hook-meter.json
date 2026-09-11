@@ -1,0 +1,14 @@
+{
+  "id": 9009,
+  "book": 0,
+  "name": "Hook meter (7x7)",
+  "project": "hook_meter",
+  "hard": false,
+  "moves": 40,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "hook",
+  "cells": ["ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo"],
+  "presets": [{ "x": 3, "y": 3, "piece": "hook" }],
+  "goals": [],
+  "coins": 0
+}

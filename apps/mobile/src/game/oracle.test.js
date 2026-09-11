@@ -98,6 +98,18 @@ test('buildMove reproduces the engine board and a playable timeline for every bo
           const endT = move.shuffle === null ? move.total : move.shuffle.at;
           if (move.shuffle === null) assert.equal(move.total, last, `${where} total`);
 
+          // a board shake always lives inside the move it belongs to
+          for (const shake of move.shakes) {
+            assert.ok(shake.at >= 0, `${where} shake before the move`);
+            assert.ok(shake.at + shake.duration <= move.total, `${where} shake outruns the move`);
+            assert.ok(shake.amplitude > 0 && shake.amplitude < 1, `${where} shake amplitude`);
+          }
+          // the meter is a readout, not a piece: it never costs the move time
+          const meters = steps.filter((s) => s.type === 'meter');
+          if (meters.length > 0) assert.equal(move.meter, meters[meters.length - 1].charge, where);
+          // and the meter drops at most one piece per move
+          assert.ok(steps.filter((s) => s.type === 'meterDrop').length <= 1, `${where} drops`);
+
           // it starts where the board was and ends where the board is
           for (const [id, track] of move.tracks) {
             const start = sampleTrack(track, 0);

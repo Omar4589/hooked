@@ -3,7 +3,7 @@
 // thread, so pieces in a column share the same instant and a stack can never drift apart the
 // way chained per-piece animations do. Being pure, it is also testable in node.
 
-import { FALL_OVERSHOOT } from './timings.js';
+import { FALL_OVERSHOOT, SHAKE_STEP_MS } from './timings.js';
 
 /** @typedef {import('./timings.js').Segment} Segment */
 /** @typedef {import('./timings.js').Track} Track */
@@ -64,4 +64,26 @@ export const sampleTrack = (track, t) => {
     scale: sampleProp(track.scale, track.initial.scale, t),
     opacity: sampleProp(track.opacity, track.initial.opacity, t),
   };
+};
+
+/**
+ * How far the whole board is pushed sideways at time `t`, in cells. A blast wobbles the board
+ * either side of centre and settles back to nothing, so the shake never moves a piece relative
+ * to its neighbours and never needs a track of its own.
+ * @param {{ at: number, duration: number, amplitude: number }[]} shakes
+ * @param {number} t
+ * @returns {number}
+ */
+export const sampleShake = (shakes, t) => {
+  'worklet';
+  let offset = 0;
+  for (let i = 0; i < shakes.length; i += 1) {
+    const shake = shakes[i];
+    if (t < shake.at || t >= shake.at + shake.duration) continue;
+    const u = (t - shake.at) / shake.duration;
+    // a sine wobble that decays to nothing by the end of the window
+    const wobbles = Math.max(1, Math.round(shake.duration / SHAKE_STEP_MS));
+    offset += shake.amplitude * (1 - u) * Math.sin(u * wobbles * Math.PI);
+  }
+  return offset;
 };

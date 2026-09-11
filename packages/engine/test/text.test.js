@@ -117,3 +117,48 @@ test('renderState and formatPos', () => {
   );
   expect(formatPos({ x: 4, y: 0 })).toBe('(4,0)');
 });
+
+test('describeStep names the firings, the meter and the drop', () => {
+  const P = (x, y) => ({ x, y });
+  expect(
+    describeStep({
+      type: 'blast',
+      pos: P(2, 3),
+      special: 'bobble',
+      radius: 2,
+      orientation: null,
+      cells: [P(2, 3), P(2, 4)],
+      cascade: 1,
+      points: 80,
+      combo: false,
+    }),
+  ).toBe('blast bobble at (2,3): 2 cells (+80)');
+  expect(
+    describeStep({
+      type: 'blast',
+      pos: P(0, 0),
+      special: 'hook',
+      radius: null,
+      orientation: 'rows',
+      cells: [],
+      cascade: 2,
+      points: 0,
+      combo: true,
+    }),
+  ).toBe('blast hook rows combo at (0,0): 0 cells (+0)');
+  expect(
+    describeStep({
+      type: 'frogRip',
+      pos: P(1, 1),
+      color: 'olive',
+      cells: [P(1, 1)],
+      cascade: 1,
+      points: 520,
+      combo: false,
+    }),
+  ).toBe('frogRip olive at (1,1): 1 cells (+520)');
+  expect(describeStep({ type: 'meter', charge: 7, full: 10 })).toBe('meter: 7/10');
+  expect(describeStep({ type: 'meterDrop', pos: P(3, 3), piece: { kind: 'frog' } })).toBe(
+    'meterDrop: frog at (3,3)',
+  );
+});

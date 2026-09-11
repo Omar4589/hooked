@@ -6,6 +6,8 @@ as a commercial release with in-app purchases. The full design is in `docs/DESIG
 sections relevant to the current phase; §11 has the architecture, the
 monorepo layout, and the build order with a "done when" for each phase.
 Open questions for the owner live in `docs/QUESTIONS.md`; the per-phase prompts in `docs/PROMPTS.md`.
+`docs/RULES.md` is the same rules in plain English for the owner and for testing; it is a view of
+the spec, not a second source of truth, and is rewritten at the end of each phase.
 The public name is **Yarn Over**; "Hooked" is the codename for the repo, the EAS slug and the bundle id.
 
 ## Monorepo
@@ -75,7 +77,7 @@ All from the repo root unless noted:
 - run the app: `npx expo start` inside `apps/mobile` (or `npm run mobile`)
 - web playground: `npm run dev:playground` (http://localhost:5174)
 - API: `npm run dev:api` (needs `apps/api/.env`, see `apps/api/.env.example`)
-- text playthrough of a level or fixture: `npm run play -- packages/engine/fixtures/coaster-5x5.json --seed 1`
+- text playthrough of a level or fixture: `npm run play -- packages/engine/fixtures/specials-holes.json --seed 3`
   (or `node packages/engine/scripts/play.js <path>`; `--help` lists the flags).
   `packages/engine/fixtures/*.json` are engine test and CLI inputs, not shipped levels.
 - ship a JS/asset update: `npm run ota:production` (or `ota:staging`) inside
