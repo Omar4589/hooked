@@ -4,20 +4,24 @@ Asked at the end of phase 0 and answered by the owner on 2026-09-10. Each item k
 original question, the owner's answer in short, the decision it produced and where that
 decision now lives. Decisions live in DESIGN.md; this file is the record.
 
+## Second round (2026-09-10, later the same day)
+
+- Credits keep her first name and the level 7000 line: "For Faith, who is at level 7000."
+  The hidden level stays, its note now "Fastened off. For Faith, who is at level 7000. Thank
+  you for every stitch." Her name appears in those two places only. Items 9 and 25.
+- Store name: the public one shoppers see is the one that must be unique; the bundle id is
+  what Apple sees internally and is already set. Candidate: **Yarniverse**, to be verified
+  when the App Store Connect record is created. Item 22.
+- Google Play: the account canvass-app ships under. Item 23.
+- Age rating: the same as Fishdom, 4+ / Everyone, with a 13+ declared audience. Item 24.
+
 ## Still open
 
-- **The store name.** "Hooked" stays on the device. Candidates so far: Yarn Farm, Yarn House.
-  "Yarn Bank" is the in-game jar (§8), so not that. Needed the day the App Store Connect record
-  is created (the first TestFlight build). Item 22.
-- **Which Google Play account.** Two exist: the personal one, and the one canvass-app uses.
-  Default: the personal one. Item 23.
-- **Two strings to approve.** The credits line "Inspired by a crocheter who is at level 7000."
-  and the hidden level's closing note, drafted without her name: "Fastened off. Thank you for
-  every stitch." Items 9 and 25.
+- **Store name.** Yarniverse is the candidate, but "Knit Stars and Yarniverse" is already on the App
+  Store, so it is a live brand in the yarn space; a trademark search and the App Store Connect
+  check decide it. Have a second candidate ready. Item 22.
 - **Money.** Whether the LLC or your personal name receives revenue (the LLC is my default; see
   item 17 for why), and the revenue arrangement with her, written down before phase 9.
-- **Age rating.** 4+/Everyone with a declared target audience of 13+, not Made for Kids, is my
-  default; confirm before the first external TestFlight build. Item 24.
 
 ## Answer before phase 1 (engine)
 
@@ -157,7 +161,7 @@ DESIGN §11 says 'MMKV (or AsyncStorage)' and PROMPTS phase 6 says MMKV. react-n
 
 **Owner.** She knows a game is being made, not which. No name, no photos in the app; photos are references. Everything else is okayed; photos will be added to the repo folder.
 
-**Decision.** No personal identity ships. Photos go in `docs/reference/photos/` (gitignored) for the artist; illustrations everywhere in the app.
+**Decision.** No photos ship; they live in `docs/reference/photos/` (gitignored) for the artist, illustrations everywhere in the app. Second round: her first name does appear, in the credits line and the hidden level's note only.
 
 **Recorded in.** DESIGN §12, §13, §15, §16; CLAUDE.md rule; docs/reference/README.md
 
@@ -369,7 +373,7 @@ The spec requires a dyno that does not sleep (Continue prompts and gift popups m
 
 **Owner.** Undecided; ideas: Yarn Farm, Yarn House, Yarn Bank.
 
-**Decision.** Still open. "Hooked" stays on the device. "Yarn Bank" is taken by the in-game jar (§8), so not that one.
+**Decision.** Candidate "Yarniverse" (second round), with a caveat: an app named "Knit Stars and Yarniverse" already exists on the App Store, so Yarniverse is a live brand in the yarn space and needs a trademark check before it is used. "Hooked" stays the codename, repo and EAS slug; `expo.name` follows the store name once App Store Connect confirms it. "Yarn Bank" is the in-game jar (§8), so not that.
 
 **Recorded in.** Still open, see the top of this file
 
@@ -385,7 +389,7 @@ Store name and on-device name may differ, so expo.name can stay 'Hooked' on the 
 
 **Owner.** Reuse the Apple team and Google Play; two Google accounts exist (personal, and one canvass-app uses).
 
-**Decision.** Reuse Apple. Which Google Play account is still open. Consideration: the account canvass-app ships under has already cleared Google's closed-testing requirement for new personal accounts; a personal account created after November 2023 has not.
+**Decision.** Reuse Apple, and the Google Play account canvass-app ships under (second round).
 
 **Recorded in.** DESIGN §11 Money and accounts; still open
 
@@ -401,7 +405,7 @@ One Apple membership holds many apps, so reuse costs nothing and skips a days-lo
 
 **Owner.** Like canvass-app; write it up quickly.
 
-**Decision.** Static HTML served by the API. Her phase 6 build goes out through TestFlight's internal testers, which need no privacy URL and no Beta App Review; the pages are live before phase 9's external build. Age rating 4+/Everyone, target audience 13+, not Made for Kids: my default, owner to confirm.
+**Decision.** Static HTML served by the API. Her phase 6 build goes out through TestFlight's internal testers, which need no privacy URL and no Beta App Review; the pages are live before phase 9's external build. Age rating 4+ / Everyone like Fishdom, target audience 13+, not Made for Kids (second round).
 
 **Recorded in.** DESIGN §11 Money and accounts
 
@@ -415,9 +419,9 @@ App Store Connect asks for the privacy policy URL before external TestFlight rev
 
 ### 25. Two strings only you have: her name as it should read in 'For [her name], who is at level 7000', and what the hidden level is (its project) and the note that ends it?
 
-**Owner.** Gave her first name (deliberately not written down anywhere in this repo); asked what the hidden level and note are.
+**Owner.** Gave her first name; asked what the hidden level and note are. Second round: keep the name in the credits, keep the hidden level.
 
-**Decision.** Per answer 9 the name stays out of the app. Credits read "Inspired by a crocheter who is at level 7000." The hidden level (id 7000) ends on a short thank-you note with no name; the wording is still to approve.
+**Decision.** Second round: credits read "For Faith, who is at level 7000." and the hidden level (id 7000) ends on "Fastened off. For Faith, who is at level 7000. Thank you for every stitch." (wording adjustable). Those are the only two places her name appears.
 
 **Recorded in.** DESIGN §13, §10; still open (wording)
 

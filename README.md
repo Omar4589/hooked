@@ -36,5 +36,5 @@ cp apps/api/.env.example apps/api/.env && npm run dev:api   # needs a local mong
 Phase 0 (monorepo setup) is committed. The EAS project exists (`@omar4589/hooked`), the
 identifiers are final (`com.omarzumaya.hooked`), and the owner's decisions from 2026-09-10 are
 in DESIGN.md and docs/QUESTIONS.md. Not yet done: hello world confirmed on a phone, the Heroku
-app and Atlas cluster (phase 7), the store name. Phases 1–9 and their "done when" are in
+app and Atlas cluster (phase 7), the store name (candidate: Yarniverse; "Hooked" stays the codename). Phases 1–9 and their "done when" are in
 DESIGN.md §11; phase 0's is the setup prompt in docs/PROMPTS.md.

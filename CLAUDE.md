@@ -50,8 +50,10 @@ Open questions for the owner live in `docs/QUESTIONS.md`; the per-phase prompts 
   ledger entries. `apps/api` mirrors canvass-app's Express, MongoDB, env and
   Heroku conventions; secrets only in env, never in the repo.
 - Never copy Fishdom's names, art or text into the app. Reference only.
-- No personal identity in the app: not her name, not her photos. The photos in
-  `docs/reference/photos/` are references for the artist and never ship.
+- Her first name appears in exactly two places, the credits line and the hidden
+  level's note (DESIGN.md §13), and nowhere else. Never her surname, never her
+  photos: the photos in `docs/reference/photos/` are references for the artist
+  and never ship.
 - Navigation goes through `apps/mobile/src/nav.js`; persistence through
   `apps/mobile/src/meta/storage.js`. Screens never import the navigator or the
   storage library directly.
