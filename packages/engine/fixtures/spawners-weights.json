@@ -1,0 +1,23 @@
+{
+  "id": 9007,
+  "book": 0,
+  "name": "Spawners and weights (lower runs of columns 2-4 are deliberately unfed)",
+  "project": "mug_cozy",
+  "hard": false,
+  "moves": 24,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooooo", "ooooooo", "ooooooo", "oo...oo", "ooooooo", "ooooooo", "ooooooo"],
+  "spawners": [
+    [0, 0],
+    [1, 0],
+    [2, 0],
+    [3, 0],
+    [4, 0],
+    [5, 0],
+    [6, 0]
+  ],
+  "weights": { "lavender": 3, "olive": 0.2 },
+  "goals": [{ "type": "collect", "color": "lavender", "count": 40 }],
+  "coins": 110
+}

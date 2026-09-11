@@ -1,0 +1,14 @@
+{
+  "id": 9002,
+  "book": 0,
+  "name": "Square 6x6",
+  "project": "coaster_blush",
+  "hard": false,
+  "moves": 20,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "none",
+  "cells": ["oooooo", "oooooo", "oooooo", "oooooo", "oooooo", "oooooo"],
+  "stitch": ["111111", "111111", "111111", "111111", "111111", "111111"],
+  "goals": [{ "type": "stitch" }],
+  "coins": 100
+}

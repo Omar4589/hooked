@@ -1,0 +1,13 @@
+{
+  "id": 9008,
+  "book": 0,
+  "name": "Dead-prone 5x5 (six colors, shuffles often)",
+  "project": "coaster_olive",
+  "hard": false,
+  "moves": 30,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender", "cocoa"],
+  "meter": "none",
+  "cells": ["ooooo", "ooooo", "ooooo", "ooooo", "ooooo"],
+  "goals": [{ "type": "collect", "color": "cocoa", "count": 20 }],
+  "coins": 100
+}

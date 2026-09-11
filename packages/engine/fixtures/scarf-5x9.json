@@ -1,0 +1,13 @@
+{
+  "id": 9004,
+  "book": 0,
+  "name": "Scarf 5x9",
+  "project": "scarf",
+  "hard": false,
+  "moves": 24,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooo", "ooooo", "ooooo", "ooooo", "ooooo", "ooooo", "ooooo", "ooooo", "ooooo"],
+  "goals": [{ "type": "collect", "color": "rust", "count": 40 }],
+  "coins": 110
+}

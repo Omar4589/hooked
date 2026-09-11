@@ -22,7 +22,8 @@
     "build:playground": "npm run build -w apps/playground --",
     "format": "prettier --write \"apps/**/*.{js,jsx,mjs}\" \"packages/**/*.{js,mjs}\"",
     "format:check": "prettier --check \"apps/**/*.{js,jsx,mjs}\" \"packages/**/*.{js,mjs}\"",
-    "heroku-postbuild": "npm run heroku-postbuild -w @hooked/api --if-present"
+    "heroku-postbuild": "npm run heroku-postbuild -w @hooked/api --if-present",
+    "play": "node packages/engine/scripts/play.js"
   },
   "overrides": {
     "react": "19.2.3",

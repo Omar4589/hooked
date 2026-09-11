@@ -1,0 +1,22 @@
+{
+  "id": 9006,
+  "book": 0,
+  "name": "Blockers mix (cells under a tangle stay empty until phase 4)",
+  "project": "yarn_basket",
+  "hard": false,
+  "moves": 30,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooooo", "oo1oooo", "ooooooo", "okoo3oo", "oooxooo", "obooomo", "ookoobo"],
+  "goals": [
+    { "type": "clear", "blocker": "tangle" },
+    { "type": "beads", "count": 2 }
+  ],
+  "beads": { "total": 2, "onBoard": 2, "spawnEvery": 0 },
+  "presets": [
+    { "x": 6, "y": 0, "piece": "puff" },
+    { "x": 3, "y": 2, "piece": "bobble" },
+    { "x": 0, "y": 6, "piece": "frog" }
+  ],
+  "coins": 120
+}

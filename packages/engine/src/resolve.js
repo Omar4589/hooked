@@ -1,0 +1,86 @@
+// The cascade loop (DESIGN.md §11 "Resolution loop"): find matches, clear them, place the
+// specials they create, score, let pieces fall, refill, and repeat until nothing matches.
+// Emits the steps the step player replays, in playback order.
+
+import { MAX_CASCADES } from './constants.js';
+import { removePiece, setPiece, clonePiece, comparePos, posKey } from './board.js';
+import { findMatches, specialForSize, spawnCellFor } from './match.js';
+import { applyGravity, refill } from './gravity.js';
+import { scoreForClear } from './score.js';
+
+/** @typedef {import('./constants.js').Board} Board */
+/** @typedef {import('./constants.js').Pos} Pos */
+/** @typedef {import('./constants.js').Piece} Piece */
+/** @typedef {import('./constants.js').Run} Run */
+
+/**
+ * @typedef {Object} ResolveContext
+ * @property {Board} board
+ * @property {Run[]} runs
+ * @property {Set<string>} spawnerKeys           posKey of each spawner
+ * @property {(pos: Pos) => Piece} spawnPiece   injected so tests can script refills
+ * @property {(points: number) => void} addScore
+ * @property {(cleared: Pos[]) => object[]} [damage]
+ *   reserved for phase 4 (blocker and stitch damage); returns extra steps emitted between
+ *   the clear and the fall
+ */
+
+/**
+ * Resolves every match on the board and returns the steps. Steps never share objects with the
+ * board: pieces are cloned at emission, positions are fresh.
+ * @param {ResolveContext} ctx
+ * @param {Pos[]} [swapped]  the two swapped cells; used for cascade 1 only
+ * @returns {object[]}
+ */
+export const resolveMatches = (ctx, swapped = []) => {
+  const { board, runs, spawnerKeys, spawnPiece, addScore, damage } = ctx;
+  const steps = [];
+  let cascade = 1;
+  for (;;) {
+    const matches = findMatches(board);
+    if (matches.length === 0) break;
+    if (cascade > MAX_CASCADES) {
+      const hint = "check the level's colors and weights";
+      throw new Error(`resolve: more than ${MAX_CASCADES} cascades in one move; ${hint}`);
+    }
+    const seen = new Set();
+    const cleared = [];
+    for (const m of matches) {
+      for (const p of m.cells) {
+        if (!seen.has(posKey(p))) {
+          seen.add(posKey(p));
+          cleared.push({ x: p.x, y: p.y });
+        }
+      }
+    }
+    cleared.sort(comparePos);
+    const created = [];
+    for (const m of matches) {
+      const special = specialForSize(m.size);
+      if (special === null) continue;
+      const pos = spawnCellFor(m, cascade === 1 ? swapped : []);
+      created.push({ pos, piece: { kind: 'yarn', color: m.color, special } });
+    }
+    const points = scoreForClear({ cleared, created, cascade });
+    addScore(points);
+    steps.push({
+      type: 'clear',
+      cells: cleared.map((p) => ({ x: p.x, y: p.y })),
+      created: created.map((c) => ({
+        pos: { x: c.pos.x, y: c.pos.y },
+        piece: clonePiece(c.piece),
+      })),
+      cascade,
+      points,
+    });
+    for (const p of cleared) removePiece(board, p);
+    for (const c of created) setPiece(board, c.pos, clonePiece(c.piece));
+    if (damage !== undefined) steps.push(...damage(cleared));
+    const moves = applyGravity(board, runs);
+    if (moves.length > 0) steps.push({ type: 'fall', moves });
+    const spawned = refill(board, runs, spawnerKeys, spawnPiece);
+    if (spawned.length > 0) steps.push({ type: 'spawn', cells: spawned });
+    cascade += 1;
+  }
+  return steps;
+};

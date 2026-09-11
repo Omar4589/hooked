@@ -1,9 +1,40 @@
-// @hooked/engine — public surface.
-//
-// Phase 0 ships only the fixed names; phase 1 adds createGame (DESIGN.md §11).
-// Nothing in this package may import react, react-native or expo.
+// @hooked/engine — public surface. Nothing in this package may import react, react-native or
+// expo, or any Node-only API (see test/browser-safe.test.js).
 
-export { COLORS, SPECIALS, PIECE_KINDS, BLOCKERS, GOALS, MAX_BOARD_SIZE } from './constants.js';
-
-/** Bumped by hand when the step format or the game API changes shape. */
-export const ENGINE_VERSION = '0.1.0';
+export {
+  ENGINE_VERSION,
+  COLORS,
+  SPECIALS,
+  PIECE_KINDS,
+  BLOCKERS,
+  GOALS,
+  MAX_BOARD_SIZE,
+  SCORE,
+  MAX_CASCADE_MULTIPLIER,
+  MAX_CASCADES,
+  METER_FULL,
+  METERS,
+  HARD_LABELS,
+  MATCH_SPECIALS,
+  PRESET_PIECES,
+  STEP_TYPES,
+  CELL_LEGEND,
+  STITCH_LEGEND,
+  TEXT_LEGEND,
+} from './constants.js';
+export { createRng } from './rng.js';
+export { columnRuns } from './board.js';
+export { normalizeLevel } from './level.js';
+export { createGame } from './game.js';
+export { applySteps } from './replay.js';
+export {
+  renderBoard,
+  renderStitch,
+  parseBoard,
+  describeStep,
+  describeSteps,
+  renderState,
+  formatPos,
+} from './text.js';
+export { parseArgs, USAGE } from './cli.js';
+export { createRandomBot, playGame } from './bots.js';

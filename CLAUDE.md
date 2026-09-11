@@ -69,7 +69,9 @@ All from the repo root unless noted:
 - run the app: `npx expo start` inside `apps/mobile` (or `npm run mobile`)
 - web playground: `npm run dev:playground` (http://localhost:5174)
 - API: `npm run dev:api` (needs `apps/api/.env`, see `apps/api/.env.example`)
-- text playthrough of a level: `node packages/engine/scripts/play.js <level.json>` (phase 1)
+- text playthrough of a level or fixture: `npm run play -- packages/engine/fixtures/coaster-5x5.json --seed 1`
+  (or `node packages/engine/scripts/play.js <path>`; `--help` lists the flags).
+  `packages/engine/fixtures/*.json` are engine test and CLI inputs, not shipped levels.
 - ship a JS/asset update: `npm run ota:production` (or `ota:staging`) inside
   `apps/mobile`; both run the fingerprint check first.
 

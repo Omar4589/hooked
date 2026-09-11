@@ -1,0 +1,15 @@
+{
+  "id": 9001,
+  "book": 0,
+  "name": "Coaster (olive)",
+  "project": "coaster_olive",
+  "hard": false,
+  "moves": 20,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "none",
+  "cells": [".ooo.", "ooooo", "ooooo", "ooooo", ".ooo."],
+  "stitch": [".111.", "11111", "11111", "11111", ".111."],
+  "goals": [{ "type": "stitch" }],
+  "coins": 100,
+  "tutorial": ["swap", "puff"]
+}

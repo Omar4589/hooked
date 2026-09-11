@@ -1,0 +1,13 @@
+{
+  "id": 9005,
+  "book": 0,
+  "name": "Holes split the columns",
+  "project": "potholder",
+  "hard": false,
+  "moves": 24,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "frog",
+  "cells": ["ooooooo", "ooooooo", "ooooooo", "oo...oo", "ooooooo", ".oooooo", "ooooooo"],
+  "goals": [{ "type": "collect", "color": "mustard", "count": 30 }],
+  "coins": 110
+}

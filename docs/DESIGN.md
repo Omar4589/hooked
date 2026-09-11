@@ -4,6 +4,8 @@
 
 *A cozy match-3 where every level is a crochet project, and everything you make decorates your room. A tribute to one crocheter, built to ship to everyone.*
 
+> **v0.9.4 (2026-09-11, phase 1 built):** the engine conventions are recorded in §11 ("Engine conventions (phase 1)"): runs are split by holes only and blockers are floors (§3, §10), the `clear` step carries `points`, `state()` carries `level` and the two `meter` shapes, and §16 gains a `shuffle` row. `packages/engine/fixtures/*.json` are engine test and CLI inputs, not shipped levels.
+>
 > **v0.9.3 (2026-09-10, second round):** her first name is in the credits line and the hidden level's note, and nowhere else (§13, reversing the blanket no-name rule; photos still never ship); the Google Play account canvass-app ships under is reused; age rating matches Fishdom (4+ / Everyone) with a 13+ declared audience; the store name is **Yarn Over** (§11 Shipping; "Yarniverse" was dropped because "Knit Stars and Yarniverse" exists).
 >
 > **v0.9.2 (2026-09-10, owner decisions):** the [verify] mechanics are decided rather than measured against Fishdom (§3–§6: blast shapes, meter, combos, blocker damage, beads; the frog is its own piece); no personal identity ships (§12, §13, §15, §16: no name, no photos; photos are artist references in `docs/reference/`); cloud save via a `progress` document (§11 Backend); persistence is `expo-sqlite/kv-store`, navigation is React Navigation native-stack (§11 Rendering); the Craft Nook catalogue, the `hard` labels and the hidden level are pinned (§8, §10, §13); Book 1 is planned in `docs/LEVELS-BOOK1.md`; the art brief for the designer is `docs/design/BRIEF.md`. Every answer is logged in `docs/QUESTIONS.md`.
@@ -50,7 +52,7 @@ Swap yarn balls to make matches. Every level is a crochet project (a coaster, a 
 - **5–6 yarn colors** per level (fewer colors = easier and makes 6- and 7-matches possible). Palette from her work (§15): `olive`, `mustard`, `blush`, `rust`, `lavender`, `cocoa`.
 - **Swap** two orthogonally adjacent pieces. A swap is legal if it creates a match of 3+, or if either piece is a special (swapping a special fires it, Fishdom-style). Otherwise the pieces snap back and no move is spent.
 - **Match** = 3+ same color in a straight line. Matches of 4, 5, 6 and 7+ pieces create specials (§4); an L or T counts by total pieces (an L of 5 is a 5-match). The special spawns at the swapped piece (or the corner of an L/T); a match made by a cascade spawns its special at the middle cell of the run (the corner for an L/T).
-- **Gravity** pulls pieces straight down. Each vertical run of open cells refills from a spawner at its top. (Diagonal slide around holes is a v2 item.)
+- **Gravity** pulls pieces straight down. Each vertical run of non-hole cells refills from a spawner at its top; a tangle, moth or knotted ball inside a run is a floor: nothing falls through it, and the cells below it stay empty until it clears, the way a Fishdom column only ever fills from its top. (Diagonal slide around holes is a v2 item.)
 - **Cascades**: after refill, re-check for matches; each successive cascade raises the score multiplier (×1, ×2, ×3 … capped at ×5). The HUD shows it as *Combo ×2*, *Combo ×3* … the way Fishdom does.
 - **No valid moves** → "Untangling…" and the board reshuffles (never into an immediate match).
 - **Hint**: after ~5 s idle, wiggle a valid match.
@@ -296,7 +298,7 @@ Levels are hand-authored JSON so they're quick to write, tweak and ship without 
 - `tutorial`: one of `swap`, `puff`, `bobble`, `meter`, `popcorn`, `yarnbomb`, `tangle`, `knot`, `buried`, `boosters`, or an array of them played in order (level 1 is `["swap", "puff"]`, level 8 is `["knot", "boosters"]`). For match-size beats the generator guarantees an opening board where one swap makes that size (for `meter`, it places a Bobble); for blocker beats the level's own cells provide the setup. The UI shows Skein's line and a hand pointer. One line, one pointer, skippable.
 - `beads`: total to deliver, how many start on the board, and how many moves between spawns. `exits` defaults to the bottom open cell of every column; pass a list of `[x, y]` to restrict it.
 - `weights`: bias the refill toward a goal color (>1) or away from a nuisance color (<1).
-- `spawners`: override the default (top open cell of each vertical run).
+- `spawners`: override the default (the top cell of each vertical run of non-hole cells); every entry must be such a run top, and a run without a spawner never refills.
 - `presets`: place specific pieces at level start (`puff`, `bobble`, `popcorn`, `yarnbomb`, `hook`, `frog`).
 - `hard`: `false`, `"tricky"`, `"tangled"` or `"nightmare"`: the label on the Play button (§8).
 - `hidden`: `true` marks the frog-tap secret level (`id` 7000, `book` 0, §13); hidden levels are left out of the Play sequence and the bot-sim reports.
@@ -334,6 +336,7 @@ The data shapes are documented with JSDoc comments, which give you editor hints 
  * @property {number} [tangle]   1–3 layers; the cell has no piece while > 0
  * @property {boolean} [moth]
  * @property {number} [stitch]   0–2 layers under the piece
+ * @property {boolean} [buried]  a button under a tangle (`x` in the level file)
  */
 ```
 
@@ -344,7 +347,9 @@ import { createGame } from '@hooked/engine';
 const game = createGame(levelJson, seed);
 
 game.state();
-// → { board, moves, score, coins, meter, goals, status: 'playing' | 'won' | 'lost' }
+// → { board: { width, height, cells }, moves (remaining), score, coins, meter, goals,
+//     status: 'playing' | 'won' | 'lost', level: { id, name } }
+//   meter is { kind: 'none' } or { kind: 'frog'|'hook', charge, full: 10 }
 
 game.swap({ x: 3, y: 4 }, { x: 4, y: 4 });   // → { steps: [ ... ] }
 game.tap({ x: 3, y: 4 });                     // double-tap fires a special in place
@@ -356,7 +361,7 @@ Steps are plain objects. The step player in the UI is one function that switches
 
 ```js
 { type: 'swap', a, b, illegal }              // illegal → animate and snap back
-{ type: 'clear', cells, created, cascade }   // created: [{ pos, piece }] specials that spawn
+{ type: 'clear', cells, created, cascade, points }   // cells: Pos[]; created: [{ pos, piece }]; cascade 1-based; points this step scored
 { type: 'blast', pos, special, cells }       // a puff / bobble / popcorn / yarn bomb / hook firing
 { type: 'frogRip', pos, color, cells }       // the frog ripping out a color
 { type: 'meter', charge, full }              // frog (or hook) meter changed
@@ -426,9 +431,22 @@ hooked/                     monorepo, same tooling as canvass-app
 - **Remote tuning:** levels are JSON and ship with `eas update`; `GET /config` serves the economy numbers (marker prices, earn rates, wall targets) from a `config` document, cached on the client with a version.
 - **Collections:** `players`, `progress`, `ledger`, `purchases`, `grants`, `codes`, `attempts`, `config`. Keep the API stateless; everything a request needs is in the JWT and Mongo.
 
+**Engine conventions (phase 1, decided 2026-09-11).** The rules `packages/engine` implements where the sections above left room; keep them easy to change, don't re-open them without the owner.
+
+1. Cascades are numbered from 1 (the swap's own matches); the multiplier is min(cascade, 5); the HUD shows *Combo ×N* from cascade 2. The swapped cells guide special placement on cascade 1 only.
+2. A swap-made match spawns its special at the swapped cell that belongs to it (for a swap-made L/T that cell is the corner). A cascade-made match spawns at the corner of an L/T/plus, else at the middle of the run, the left/top middle for even lengths.
+3. A yarn ball carrying a special keeps its color and matches normally. A swap is legal if it makes a 3+ match or either piece fires on swap (carries a special, or is the frog); until phase 3 a fire-only swap just exchanges the pieces and spends the move.
+4. Vertical runs are maximal groups of non-hole cells, computed once. Tangles, moths and knotted balls are floors inside a run. `spawners` replaces the default set and must name run tops.
+5. `weights` default to 1, apply to generation and refill alike, and must leave at least two colors positive. The fill is a construction (it excludes any color that would complete a run with pieces already present), so with three or more positive colors every fill is match-free; the acceptance check (match-free plus at least one valid move) retries up to 200 times, then throws an error naming the level. Phase 1 accepts any two or more distinct colors so tests can use small sets; §3's five-to-six range is a phase 4 schema check. `tutorial` is parsed and passed through; its opening-board guarantee arrives with the tutorial phase.
+6. A shuffle permutes the movable yarn balls (knots, beads, the frog and blockers stay) until the board is match-free with a valid move; 200 attempts, then an error.
+7. Presets sit on `o` cells only; a preset special rides the ball already there; `frog` replaces it. `x` is a 2-layer tangle with `buried: true`. `exits` default to the lowest non-hole cell of each column; `beads` default to the bead cells on the board; goals, `hard` and `hidden` are validated.
+8. Only the cleared ball is multiplied; the special bonuses are flat. A legal swap spends one move; `status` becomes `lost` at 0 moves (`won` arrives with goals). A swap on a finished game returns no steps; malformed coordinates throw; a swap into a hole, tangle, moth, empty cell or knot is an `illegal` step.
+9. Steps never share objects with the board, and `illegal` is always a boolean. The stream is complete and strict: `applySteps(board, steps)` (exported) rebuilds the engine's board exactly and throws on a stream that under-reports; the phone's step player is that function with animations. Spawns in one run are the contiguous empty prefix from the run's top, so the i-th of n enters from row top − (n − i).
+10. More than 100 cascades in one move is an error (a level whose weights leave one color would otherwise loop forever).
+
 **Build order.** Each phase has a "done when" so you know when to move on.
 
-1. **Engine, no screen.** `packages/engine` as a pure JS package with Jest tests: board generation with no starting matches, match detection, swap legality, gravity and refill, cascades, scoring. Plus a small node script that plays random moves and prints the board as text. *Done when the tests pass and a text board plays itself in the terminal.*
+1. **Engine, no screen.** `packages/engine` as a pure JS package with Jest tests: board generation with no starting matches, match detection, swap legality, gravity and refill, cascades, scoring. Plus a small node script that plays random moves and prints the board as text. *Done when the tests pass and a text board plays itself in the terminal.* *(Built 2026-09-11: `npm run play -- packages/engine/fixtures/coaster-5x5.json`.)*
 2. **Bare board on your phone.** `apps/mobile` (Expo). Placeholder pieces (colored circles in the six palette colors), swipe to swap, the step player animating clears, falls and spawns. No backgrounds, no HUD. *Done when you can play on your own phone and it feels smooth.*
 3. **Specials and the meter.** Puff, Bobble, Popcorn, Yarn Bomb, the frog meter and the Hook, firing by swap, double-tap and chain, each with a big visible blast. The rules in §4 were settled by decision on 2026-09-10; no Fishdom session is needed. *Done when every row of the table in §4 works and reads clearly.*
 4. **Level rules.** JSON loader, the five goal types, the three blockers, the goals bar, move counter, win/lose, Yarn Over with coins. Three hand-written test levels. *Done when you can load a level file, win it, lose it, and watch stitch squares fill in.*
@@ -569,6 +587,7 @@ Step → animation (starting values; tune by feel):
 | `blocker` | tangle/moth/knot shakes and loses a layer; a stitch square flips to "stitched" with a scale pop | 150 ms |
 | `fall` | translateY to the new cell with a slight overshoot (`withSpring` or ease-out-back) | 200 ms |
 | `spawn` | new pieces start one row above the board and fall in | 200 ms |
+| `shuffle` | "Untangling…": the board fades out and fades back in at the snapshot's positions; a full rebuild from `board`, no per-piece movement | 400 ms |
 | `mothSpread` | moth crawls to the neighbor cell | 250 ms |
 | `beadExit` | bead drops off the bottom edge and lands on the project illustration | 250 ms |
 | `yarnOver` | specials fire one by one, coins fly to the counter, then confetti (Lottie) and the *Fastened off!* banner slides in | ~1.5 s |

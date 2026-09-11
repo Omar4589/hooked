@@ -29,6 +29,7 @@ nvm install 22 && nvm use    # once; the repo pins Node 22 (.nvmrc, and a Volta 
 npm install                  # once, at the root; installs and links every workspace
 npm test                     # engine + levels + api
 npm run mobile               # Metro; scan the QR with Expo Go on the phone
+npm run play -- packages/engine/fixtures/coaster-5x5.json --seed 1   # the engine plays a level in the terminal
 npm run dev:playground       # http://localhost:5174
 cp apps/api/.env.example apps/api/.env && npm run dev:api   # needs a local mongod or Atlas
 ```
@@ -37,6 +38,8 @@ cp apps/api/.env.example apps/api/.env && npm run dev:api   # needs a local mong
 
 Phase 0 (monorepo setup) is committed. The EAS project exists (`@omar4589/hooked`), the
 identifiers are final (`com.omarzumaya.hooked`), and the owner's decisions from 2026-09-10 are
-in DESIGN.md and docs/QUESTIONS.md. Hello world ran on a phone through Expo Go on 2026-09-10, so phase 0's done-when is met. Not
-yet done: the Heroku app and Atlas cluster (phase 7). Phases 1–9 and their "done when" are in
+in DESIGN.md and docs/QUESTIONS.md. Phase 0 (monorepo) is done: hello world ran on a phone through Expo Go on 2026-09-10. Phase 1
+(the engine) is built: `packages/engine` generates boards, detects matches, applies gravity and
+cascades, scores, and plays a level in the terminal with `npm run play`. Not yet done: phase 2
+(the board on the phone), the Heroku app and Atlas cluster (phase 7). Phases 1–9 and their "done when" are in
 DESIGN.md §11; phase 0's is the setup prompt in docs/PROMPTS.md.

@@ -1,0 +1,13 @@
+{
+  "id": 9003,
+  "book": 0,
+  "name": "Square 7x7",
+  "project": "coaster_mustard",
+  "hard": false,
+  "moves": 22,
+  "colors": ["olive", "mustard", "blush", "rust", "lavender"],
+  "meter": "none",
+  "cells": ["ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo", "ooooooo"],
+  "goals": [{ "type": "collect", "color": "olive", "count": 30 }],
+  "coins": 100
+}
