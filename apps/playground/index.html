@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hooked playground</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f6efe4; color: #3b2f2a; }
+      main { max-width: 720px; margin: 48px auto; padding: 0 24px; }
+      .palette { display: flex; gap: 16px; margin: 24px 0; }
+      .ball { width: 56px; height: 56px; border-radius: 50%; box-shadow: inset -6px -6px 0 rgba(0,0,0,.12); }
+      code { background: rgba(0,0,0,.06); padding: 2px 6px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Hooked playground</h1>
+      <p id="status">Loading @hooked/engine…</p>
+      <div id="palette" class="palette"></div>
+      <p>Phase 0: this page only proves the workspace link. Phase 1 puts a playable text board here.</p>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

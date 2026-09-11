@@ -1,0 +1,38 @@
+{
+  "name": "hooked",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,playground -c cyan,magenta \"npm:dev:api\" \"npm:dev:playground\"",
+    "dev:api": "npm run dev -w apps/api --",
+    "dev:playground": "npm run dev -w apps/playground --",
+    "mobile": "npm run start -w apps/mobile --",
+    "start": "npm start -w apps/api --",
+    "test": "npm test -w packages/engine -w packages/levels -w apps/api --",
+    "test:engine": "npm test -w packages/engine --",
+    "test:levels": "npm test -w packages/levels --",
+    "test:api": "npm test -w apps/api --",
+    "build:playground": "npm run build -w apps/playground --",
+    "format": "prettier --write \"apps/**/*.{js,jsx,mjs}\" \"packages/**/*.{js,mjs}\"",
+    "format:check": "prettier --check \"apps/**/*.{js,jsx,mjs}\" \"packages/**/*.{js,mjs}\"",
+    "heroku-postbuild": "npm run heroku-postbuild -w @hooked/api --if-present"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "prettier": "^3.6.0"
+  },
+  "volta": {
+    "node": "22.23.2"
+  }
+}

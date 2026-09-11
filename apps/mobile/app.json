@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Hooked",
+    "slug": "hooked",
+    "scheme": "hooked",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.omarzumaya.hooked",
+      "supportsTablet": true,
+      "requireFullScreen": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.omarzumaya.hooked",
+      "adaptiveIcon": {
+        "backgroundColor": "#F6EFE4",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6EFE4"
+        }
+      ]
+    ],
+    "extra": {
+      "apiBaseUrl": "http://localhost:4000",
+      "eas": {
+        "projectId": "fb9c9a73-47a6-4c90-a0c6-9178127717d2"
+      }
+    },
+    "owner": "omar4589",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fb9c9a73-47a6-4c90-a0c6-9178127717d2"
+    }
+  }
+}

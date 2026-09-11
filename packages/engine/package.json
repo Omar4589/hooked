@@ -1,0 +1,17 @@
+{
+  "name": "@hooked/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hooked match-3 engine. Pure JavaScript: no react, react-native or expo imports.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@hooked/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hooked API: Express + MongoDB, deployed to Heroku. Owns money and identity (DESIGN.md §11 Backend).",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "NODE_ENV=test node --test"
+  },
+  "dependencies": {
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "helmet": "^8.0.0",
+    "mongoose": "^9.10.0",
+    "morgan": "^1.10.0"
+  }
+}

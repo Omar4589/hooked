@@ -1,0 +1,69 @@
+node_modules/
+
+# Env files (NEVER commit secrets)
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.swp
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/.expo/
+apps/mobile/web-build/
+apps/mobile/dist/
+expo-env.d.ts
+
+# EAS / signing material
+apps/mobile/credentials/
+apps/mobile/google-play-service-account.json
+apps/mobile/AuthKey_*.p8
+apps/mobile/*.mobileprovision
+apps/mobile/*.p12
+apps/mobile/*.keystore
+apps/mobile/*.jks
+
+# API
+apps/api/tmp/
+
+# Misc
+*.tgz
+.npm/
+
+# EAS local credentials / Firebase config files (never commit)
+apps/mobile/credentials.json
+apps/mobile/google-services.json
+apps/mobile/GoogleService-Info.plist
+
+# Reference photos of her work: for the artist only, never shipped, never committed
+docs/reference/photos/
+
+# Media dropped at the repo root by mistake (references belong in docs/reference/photos/)
+/*.HEIC
+/*.heic
+/*.JPG
+/*.jpg
+/*.jpeg
+/*.PNG
+/*.png
+/*.MOV
+/*.mov
+/*.mp4
