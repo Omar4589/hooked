@@ -19,8 +19,11 @@ const walk = (dir, prefix = '', found = []) => {
   return found;
 };
 
-test('the shipped list is empty until Book 1, and the format version is 1', () => {
-  expect(listLevels()).toEqual([]);
+// Book 1 level 1 is authored, so the shipped list is no longer empty: it is exactly that one
+// level, and a row joins it for each of levels 2-15 (docs/LEVELS-BOOK1.md). Deliberately exact,
+// because the play sequence is what a player is given and it should never grow by accident.
+test('the shipped list is Book 1 level 1, and the format version is 1', () => {
+  expect(listLevels()).toEqual([{ id: 1, name: 'Coaster (olive)', book: 1, hard: false }]);
   expect(LEVEL_FORMAT_VERSION).toBe(1);
 });
 

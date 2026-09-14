@@ -3,6 +3,7 @@
 // hand-maintained because adding a level should be one JSON file and one line, and
 // test/registry.test.js fails on a file that has no line or a line without the attribute.
 
+import level001 from '../levels/book1/001.json' with { type: 'json' };
 import sandbox9x9 from '../levels/dev/sandbox-9x9.json' with { type: 'json' };
 import sandboxHook9x9 from '../levels/dev/sandbox-hook-9x9.json' with { type: 'json' };
 import stitch7x7 from '../levels/dev/stitch-7x7.json' with { type: 'json' };
@@ -19,6 +20,7 @@ import moths7x7 from '../levels/dev/moths-7x7.json' with { type: 'json' };
 
 /** Every level this package knows, shipped and development alike. @type {readonly Entry[]} */
 export const REGISTRY = Object.freeze([
+  { name: 'book1/001', json: level001 },
   { name: 'dev/sandbox-9x9', json: sandbox9x9 },
   { name: 'dev/sandbox-hook-9x9', json: sandboxHook9x9 },
   { name: 'dev/stitch-7x7', json: stitch7x7 },

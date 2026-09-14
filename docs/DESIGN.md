@@ -4,6 +4,12 @@
 
 *A cozy match-3 where every level is a crochet project, and everything you make decorates your room. A tribute to one crocheter, built to ship to everyone.*
 
+> **v0.9.10 (2026-09-13, phase 5 slice 1):** level 1 exists, and so does the card that covers its mount. `packages/levels/levels/book1/001.json` is Book 1 level 1, "Coaster (olive)" — `docs/LEVELS-BOOK1.md` row 1 verbatim, project `coaster_olive` — so `listLevels()` is no longer empty and a production build finally has a Play button; `packages/levels/test/book1.test.js` holds the file to that row and plays it out with the random bot, which wins on 13 of seeds 1–20 and loses on 7, so both endings are reachable with margin (liveness, **not** balance — the §11 win rates are the greedy bot and phase 6 sets them). `project` is now **required** by `packages/levels/src/schema.js`: §10's worked example carried it in the required block all along and its Optional list never listed it, so the schema caught up with the spec, and all 17 level files in the repo already had one. `apps/mobile/src/art` gains the project registry as two files, for the same reason `compose.js` and `sprites.js` are two: `projects.js` (`projectKeyOf(level)`, pure, node-tested) and `illustrations.js` (Metro-only `require()`s of PNGs, and the single place the list of projects with art exists). `apps/mobile/src/screens/LevelCard.jsx` is the card; `PlayScreen` defers the board's mount past a painted frame; `Board` gains an `onReady` prop that says when the expensive commit landed; `ResultScreen` draws the coaster and the drawn coin. §11 gains art conventions 15–17 and rewrites 14, its Screens and Navigation bullets say the card is not a route, its build order item 5 says what is left of the slice, and its phase-2 convention 13 splits Reduce Motion in two; §10 records the required `project`; §15's coaster row names the level; §16's `clear` and `blast` rows, v1 checklist and source 1 are marked. **Owner decisions (2026-09-13):** Book 1 level 1 is authored now rather than waiting for phase 6; **the level card is a step inside `PlayScreen`, not the modal route §11 specified**, because a route cannot defer a mount; the delivered coaster art ships as-is with a re-cut queued with the designer — the empty state is the finished piece desaturated rather than the line drawing `docs/design/BRIEF.md` ordered; the win screen says nothing about the room, which does not exist until phase 6; and the no-op `expo-font` plugin entry stays out of `app.json`, read off the plugin source rather than assumed (`withFonts` hands the config back untouched when there is no `fonts` array, so it did nothing; Fredoka loads through `useFonts` at runtime and `expo-font` is still a dependency). **Reduce Motion was a live defect and is fixed.** In reanimated 4.5.1 a reduced animation finishes on its first frame, so with the OS toggle on the board's move clock landed on its last instant and ran `finishMove` before anything drew, while the shuffle's wall-clock timers ran on regardless. The clocks and cross-fades now name `reduceMotion: ReduceMotion.Never` — the move clock, the two shuffle fades, the dial's arc and the frog's blink — and the frog's wiggle keeps the system default, because it is decorative motion and a player who asked for less should get less. The **feature** is still not built. **Measured on a device (2026-09-13, owner, iPhone 17 Pro, Expo Go, development bundle):** every board reports ready 172–298 ms under the card, which is the deferral doing what it is for. It is not the 1845 ms case: that was a Moto G Play 2023 release build, and the Moto has not been retested with the card. §16 source 1 has the readings. Phase 5 is still not finished: the drawn blast rings, the clear particles, the confetti and the coin pile, the sounds, the haptics, the ~5 s idle hint and the Reduce Motion feature.
+>
+> **v0.9.9 (2026-09-12, phase 5 built):** the board is drawn. `apps/mobile/src/art` gains `pieces.js` (every board SVG as a string factory — the designer's delivery), `compose.js` (pure string composition: a ball wearing its special and its knot, the floor as one tile sheet, the dial's fill arc), `sprites.js` (each composed string parsed into a react-native-svg AST once and shared) and `type.js` (Fredoka, loaded at runtime in `App.jsx`), and `palette.js` is rewritten around six luminance-tuned hexes with a greyscale guard. The placeholders are gone: the P/B/C/Y/F/H letters, the ring-and-knob knot, the M diamond, the numeral on a tangle, the plain coloured circles, the hairline grid and the pip row. §11 gains "Art conventions (phase 5)"; its phase-3 convention 14 is rewritten and its phase-2 conventions 9 and 13 are amended (the dial is built). §16's `meter`, `meterDrop`, `frogRip` and `blocker` rows have real behaviour, source 1 records that the delivery landed, and the v1 checklist marks what is in. **Owner decisions (2026-09-12, `docs/QUESTIONS.md` item 38):** `pieces.js` and `palette.js` *are* the designer delivery rather than an interim set; the Yarn Bomb **replaces** the ball instead of overlaying it, so its yarn colour is not readable in play (the owner's call, and a note back to the designer); the tangle numeral is dropped and the three drawn densities carry the layer count; the frog wiggles when the readout reads full, which the meter's move frames make reachable for the first time; and the dial is sized from the measured column, 56–100 pt, not fixed at 100. §13 and §15 now say the six hexes are authored rather than sampled — the photos set the hue family, not the value. **Measured on a device (2026-09-12, owner, iPhone 17 Pro, Expo Go, development bundle):** a 9×9 sandbox of roughly 2,100 SVG nodes in 81 roots holds 60 fps on the UI thread and 60 on the JS thread at rest, 1.2 ms layout, 559 MB RAM and an 84 MB Hermes heap; the lowest reading was a transient 43 fps during a frog rip. That is a floor and not the shipping number — one device, the newest one, and no production bundle has been measured — and it is recorded in §16 beside the PNG fallback it is the evidence for. Phase 5 is not finished: the coaster illustration, the level cards on Home, the blast rings, the clear particles, the confetti and coin pile, sounds and haptics are still to come.
+>
+> **v0.9.8 (2026-09-11, art hand-off):** the phase 5 art direction is settled (`docs/QUESTIONS.md` item 37) and `docs/design/BRIEF.md` is now the designer's work order. §12's yarn balls are **soft dimensional** rather than flat — a warm side light, a shaded underside and a contact shadow, still matte; §16's source 1 says the designer delivers production SVG and notes that the renderer can be swapped for PNG or Skia later without touching the game, because the step player only hands it numbers. The animated showpieces (confetti, coin burst, frog idle) are commissioned after level 1's static art is in.
+>
 > **v0.9.7 (2026-09-11, phase 4 built):** levels have rules. §11 gains "Level conventions (phase 4)": damage is per match and per blast rather than per cell, a knot is credited rather than stored, one `blocker` step per layer, a moth **multiplies** instead of crawling (owner, `docs/QUESTIONS.md` item 36), beads drop on a schedule and leave at the top of a cascade, goals are live or counted, and the end of a move runs drop → spread → won/lost/shuffle. Yarn Over places every unused move's special at once and fires them. The step list gains `points`, `buried` and `moves`; §16's `mothSpread` row follows the multiply rule; phase-2 conventions 2 and 13 are amended (a swipe from a knot, tangle or moth is ignored; win, lose and the placeholder HUD are no longer deferred). Levels now load through `@hooked/levels`.
 >
 > **v0.9.6 (2026-09-11, phase 3 built):** specials fire. The rules are recorded in §11 ("Specials conventions (phase 3)"): `blast` and `frogRip` steps take the pieces they name and carry `points`, a wave runs breadth-first after the clear, the meter charges per wave and drops one piece a move, and `game.tap` fires in place for a move. §4's blast-shape sentence and the Puff row are corrected to the decided plus-of-five and rounded square, and §16 notes that the drawn ring waits for the art in phase 5.
@@ -82,7 +88,7 @@ Fishdom's power-ups scale with match size and are all area blasts; the color-cle
 
 **Blast shape.** "Radius r" means a **rounded square**: the (2r+1)-square centred on the special minus its four extreme corners. Puff is the exception and is a plus. **Decided (2026-09-10):** rounded squares stand, so on an open board a Bobble clears 21 cells, a Popcorn 45, a Yarn Bomb 77; a Puff is a plus of 5. A blast passes over holes; a tangle or moth inside its area loses one layer, a knotted ball inside it loses the knot and clears, a bead inside it is untouched. These are our rules; they only have to feel like Fishdom, not match it.
 
-**The frog meter.** A small frog with a meter sits under the board. Every special that fires adds charge: Puff +1, Bobble +2, Popcorn +3, Yarn Bomb +4, and several firing in the same step add a +2 bonus. At 10 the frog hops onto a random open cell as a piece and the meter resets. **Decided:** these rates stand. The meter starts empty on every attempt (only the Frog Ready booster fills it); a full meter drops a frog even if one is already on the board; neither a frog rip nor the Hook charges it.
+**The frog meter.** A small frog with a meter sits beside the board — §11 hangs it as a round dial under the goals panel, which is where phase 5 built it. Every special that fires adds charge: Puff +1, Bobble +2, Popcorn +3, Yarn Bomb +4, and several firing in the same step add a +2 bonus. At 10 the frog hops onto a random open cell as a piece and the meter resets. **Decided:** these rates stand. The meter starts empty on every attempt (only the Frog Ready booster fills it); a full meter drops a frog even if one is already on the board; neither a frog rip nor the Hook charges it.
 
 **Firing a special.** Swap it with any adjacent piece (legal even without a match), double-tap it in place, hit it with another blast, or include it in a match. Blasts chain: a Puff that hits a Bobble that hits the Frog all fire in one wave.
 
@@ -281,6 +287,8 @@ Levels are hand-authored JSON so they're quick to write, tweak and ship without 
 }
 ```
 
+**`project`** (required since 2026-09-13). The thing the level makes, as a string: it is the key the project's illustration is filed under (`apps/mobile/src/art/illustrations.js`, §11's art conventions), so the win screen draws what she made by reading this one field. `validateLevel` rejects a level without it — a level with no project fastens off into nothing, and the field is what a later illustration would be hung on. A project whose art is not *drawn* yet is fine and is the normal case: the screen draws nothing in its place, no placeholder, which today is every board but Book 1 level 1. `docs/LEVELS-BOOK1.md` names Book 1's fifteen projects, one per row, and its foot fixes how their ids are spelled.
+
 **Other goal shapes**
 
 ```json
@@ -397,12 +405,12 @@ Steps are plain objects. The step player in the UI is one function that switches
 
 **Rendering**
 
-- Board: one absolutely-positioned `Animated.View` per piece, driven by Reanimated shared values. Play `steps` sequentially (timings in §16). A 9×9 grid of Views animates fine; Skia is not needed.
+- Board: one absolutely-positioned `Animated.View` per piece, each holding the drawn piece from phase 5, driven by Reanimated shared values. Play `steps` sequentially (timings in §16). A 9×9 grid of Views animates fine; Skia is not needed — measured once in phase 5, on one phone and a development bundle; §16 source 1 has what that does and does not show.
 - Input: Gesture Handler pan → swipe direction → `game.swap`. Tap-tap on a special → `game.tap`.
-- Screens: Room (home), Shop, Level card (goals + booster picker), Board + HUD with goals panel and meter, Continue prompt, Result (coins, New decor unlock), Yarn Bank, Pattern Book, Settings.
-- Navigation: React Navigation native-stack (`@react-navigation/native-stack`), one navigator, the level card / Continue / Result as modal screens; every navigation call goes through `apps/mobile/src/nav.js` so the navigator can change in one file.
+- Screens: Room (home), Shop, Board + HUD with goals panel and meter (the level card, with its goals, moves and booster picker, is a step inside it rather than a route — see Navigation), Continue prompt, Result (coins, New decor unlock), Yarn Bank, Pattern Book, Settings.
+- Navigation: React Navigation native-stack (`@react-navigation/native-stack`), one navigator, the Continue prompt and Result as modal screens; every navigation call goes through `apps/mobile/src/nav.js` so the navigator can change in one file. **The level card is not a route** (owner, 2026-09-13): it is a step inside `PlayScreen` that holds the board's mount back until a frame has been painted, because a route cannot do that — `PlayScreen` measures the arena on one commit and mounts the board on the next, so the expensive commit lands after `onLayout` returns whatever is on screen. Readiness is the screen's own state, and only a sibling in that subtree can read it without a provider above the navigator.
 - Persistence: `expo-sqlite/kv-store` (synchronous, ships with the SDK, runs in Expo Go) behind one `apps/mobile/src/meta/storage.js` module for progress, coins, room layout, lives timestamp, boosters, streaks; MMKV stays a one-file swap if it is ever needed.
-- **Landscape**, matching Fishdom (she already holds her phone that way for it); lock it in `app.json`. In-level layout, left to right: a goals panel (level number at the top, goal icons with remaining counts, the move counter at the bottom) with the frog meter as a round dial just below it; the board centered and as tall as the screen allows; a booster panel with four slots on the right, settings gear beneath it. The room is a wide scene with a top bar (avatar, lives with timer, coins, stitch markers, settings) and a bottom bar (Store button showing the room's beauty stars, shop, Pattern Book, and a big Play button with the level number at the far right). iPad uses the same layout with more air, stays landscape-locked (`requireFullScreen`), and since she may play on one it is phase 6 work, not phase 9. The board and HUD lay out against a measured arena view, never the window, so the lock can be dropped later without a layout rewrite.
+- **Landscape**, matching Fishdom (she already holds her phone that way for it); lock it in `app.json`. In-level layout, left to right: a goals panel (level number at the top, goal icons with remaining counts, the move counter at the bottom) with the frog meter as a round dial just below it (built in phase 5, and sized from the measured column rather than fixed, so a four-goal level shrinks the dial instead of pushing the move counter off the screen); the board centered and as tall as the screen allows; a booster panel with four slots on the right, settings gear beneath it. The room is a wide scene with a top bar (avatar, lives with timer, coins, stitch markers, settings) and a bottom bar (Store button showing the room's beauty stars, shop, Pattern Book, and a big Play button with the level number at the far right). iPad uses the same layout with more air, stays landscape-locked (`requireFullScreen`), and since she may play on one it is phase 6 work, not phase 9. The board and HUD lay out against a measured arena view, never the window, so the lock can be dropped later without a layout rewrite.
 - Expo makes testing on her phone and iPad painless.
 
 **Monorepo.** Same tooling and conventions as the existing `canvass-app` repo: the same package manager and workspaces setup, the same metro/babel config approach, the same `eas.json` profile and EAS Update channel scheme. Mirror the tooling, not the identity: Hooked gets its own EAS project (`eas init`), its own bundle identifier and package name, and none of canvass-app's credentials or env secrets. The engine and levels are workspace packages so the mobile app and the web playground share them.
@@ -460,11 +468,11 @@ hooked/                     monorepo, same tooling as canvass-app
 6. A piece is a view with a stable id, assigned when the board is built, a piece spawns, or a special is created, and kept through swaps and falls. Ids only grow: a shuffle and every self-heal rebuild carry the counter forward, so a fresh piece never takes the key of one still on screen.
 7. A cleared piece keeps drawing (scaling to 0 and fading) until the move ends, then is dropped in the same commit that unlocks input.
 8. `shuffle` ends its move: everything before it plays, the board fades out over 200 ms behind "Untangling…", every view is rebuilt from the step's snapshot, and it fades back in over 200 ms once those pieces exist.
-9. A ball carrying a special (the engine makes them on 4+ matches from phase 1) is drawn as its colored circle with a thin ring. It is a placeholder for legibility, not art: phase 3 replaces it, and until then swapping one just exchanges the pieces and spends the move.
+9. A ball carrying a special (the engine makes them on 4+ matches from phase 1) is drawn as its colored circle with a thin ring. It is a placeholder for legibility, not art: phase 3 replaces it, and until then swapping one just exchanges the pieces and spends the move. (The ring became a letter in phase 3 and the drawn overlay in phase 5; the art conventions below have it.)
 10. The board is laid out against a measured arena view, never the window: the cell is the largest whole pixel that fits, the board is centred, and nothing is drawn until the arena has been measured. No side gutters are reserved; the phase-4 panels shrink the arena and the board re-fits.
 11. A move ends on the clock's own callback, with a JS timer as a safety net that the clock disarms; the move in flight is recorded before the engine advances, so completion happens exactly once and can never compare a stale board to the engine's.
 12. After every move the view's board is compared with the engine's. They must match cell for cell; a mismatch warns in development and rebuilds from the engine rather than playing on from a wrong picture.
-13. Deferred, with nothing in phase 2 depending on them: the ~5 s idle hint (§3), the clear particles (§16), the real HUD and the dial, sounds and haptics, and honouring Reduce Motion. (The placeholder goals panel, the move counter and the win/lose screens arrived in phase 4.)
+13. Deferred, with nothing in phase 2 depending on them: the ~5 s idle hint (§3), the clear particles (§16), the real HUD and the dial, sounds and haptics, and honouring Reduce Motion. (The placeholder goals panel, the move counter and the win/lose screens arrived in phase 4; the drawn HUD icons and the dial arrived in phase 5. Reduce Motion is half done as of 2026-09-13, and the halves are worth keeping apart. The **defect** is fixed: reanimated finishes a reduced animation on its first frame, so with the OS setting on the move clock above landed on its last instant and ran `finishMove` before a piece had drawn, and every clock and cross-fade now names `reduceMotion: ReduceMotion.Never` — art convention 16 has the list and the exceptions. The **feature** is not built: nothing yet takes the fall's overshoot, the blast shake or the particles away from a player who asked for less motion. The hint, the particles, sound and haptics are still outstanding too.)
 
 **Specials conventions (phase 3, decided 2026-09-11).** How the engine fires what §4 decided, and how the step player shows it. Same rule as the lists above.
 
@@ -481,7 +489,7 @@ hooked/                     monorepo, same tooling as canvass-app
 11. A combo centres on the cell the player swiped into; a lone special fires from the cell it landed on. A horizontal swap sweeps the Hook across rows, a vertical one down columns, and a double-tap or a chained Hook sweeps rows.
 12. A board is dead only when the player truly cannot act: no match-making swap, no swap that fires, and nothing to tap. A board with a special on it is never shuffled away. `game.validMoves()` still means match-making swaps and takes the same options as `listValidMoves`.
 13. On screen a firing is one window (§16's duration for its size): the special swells, then the balls pop one ring at a time outward from it, the furthest landing as the window closes, and the whole board shakes harder for a bigger blast. A firing with no cells shows nothing and costs no time. The meter is a readout outside the board and costs the move no time at all.
-14. Until the art lands in phase 5, a ball carrying a special is its circle with a letter on it (P, B, C, Y, H) and the frog is a circle marked F; the frog meter is a row of pips under the board, not the §11 dial.
+14. A ball carrying a special is that ball wearing the special's overlay, composed into one svg root per appearance: the ball, then the special over its centre, then the knot low on it so a knotted special still shows both. The Yarn Bomb is the exception and replaces the ball rather than riding it (owner, 2026-09-12), which is why its yarn colour is not readable in play. The frog is drawn rather than marked, and the meter is the §11 dial under the goals panel, not a row of pips under the board — the pips could never show a full meter anyway, for the reason the art conventions below give.
 
 **Level conventions (phase 4, decided 2026-09-11).** How the engine turns §5 and §6 into steps,
 and how the step player shows them. Same rule as the lists above: easy to change, not re-opened
@@ -541,13 +549,167 @@ without the owner.
     off!* with the score and the coins, or *Ran out of yarn.* The Continue prompt of §6 waits for
     lives and stitch markers in phase 6.
 
+**Art conventions (phase 5, decided 2026-09-12).** How `apps/mobile/src/art` draws what §12 and
+§16 asked for, and what the board does with it. Same rule as the lists above: easy to change, not
+re-opened without the owner.
+
+1. `src/art` is split three ways, and node is what forces the split. `pieces.js` is every board
+   svg as a string factory and `compose.js` glues those strings into the pictures the board
+   actually shows; both are plain string work, so the rules that matter — what overlays what, in
+   what order, on which viewBox — are tested against the markup itself under `node --test`.
+   `sprites.js` imports `react-native-svg`, which plain node cannot load at all: importing it
+   reaches `react-native` itself, whose Flow-typed source node will not parse, so both
+   `require` and `import` throw `SyntaxError: Unexpected token 'typeof'`. So `sprites.js` has no
+   node test and can have none, and what is left in it is nothing but parse-and-remember. Merging
+   it back into `compose.js` would be tidier and would silently delete `compose.test.js`'s reach.
+2. Every distinct picture is parsed once and the same AST is handed to everyone drawing it.
+   `SvgXml` re-parses its string inside every mounted instance — one parse per cell, on the JS
+   thread, every time a board mounts — so the board uses `parse()` at module load or on first ask,
+   plus `SvgAst`. Sharing is safe because a parsed AST is a read-only descriptor: `SvgAst` spreads
+   its props onto one `<Svg>` and renders its children, and nothing mounts state into the tree or
+   writes back to it.
+3. One piece is one svg root, not a stack of them. The ball, the special over its centre and the
+   knot over both are composed into a single document per appearance — 72 of them, six colours ×
+   six specials × knotted or not — because a cell that mounts three roots pays for three of
+   everything. The composition is safe only because no factory declares an element id any other
+   declares, which `pieces.test.js` holds across all 50 distinct documents the art can draw; a
+   shared gradient id would repaint one piece with another's fill.
+4. The board's floor is one tile sheet, not one View per cell: `tileSheetXml` lays a translated
+   tile at every open cell on a grid-sized viewBox, so a 9×9 draws one svg where the hairline grid
+   drew 81 Views. The sheet is memoised on the identity of the `open` grid, which `cloneModel`
+   carries from move to move because holes are fixed for the level, so only a shuffle or a rebuild
+   from the engine ever parses one and never a move.
+5. A cell mounts only the tiles it can actually use. A cell swaps pictures mid-move (three layers
+   of tangle down to two, unstitched to stitched) and that swap has to land on the UI thread
+   without waiting for a React commit, so every tile a cell might show is mounted at once and
+   cross-faded by opacity — which makes the mount count the thing to watch, since everything
+   `Cell.jsx` can draw on every cell of a 9×9 is eight roots × 81. So: no stitch square outside
+   the level's pattern, no more tangle densities than the cell has layers, and no moth or button
+   unless this cell has one. The numeral on a tangle is gone (owner): the three drawn densities
+   carry the layer count, because a number on a blocker is a label and not a picture.
+6. A Track gained a fifth animated property, `pose`, beside x, y, scale and opacity, with `POSE =
+   { rest, hop, tongue }` in `timings.js`. A pose names a drawing rather than a distance, so every
+   set is instant and none of them blend; the frog's three pictures are stacked and the sampled
+   pose decides which one is opaque, which is what lets the switch happen on the UI thread
+   mid-move. A pose landing at clock 0 is written into `initial` rather than pushed as a segment,
+   because `sampleTrack(track, 0)` agreeing with `track.initial` is the start-of-move invariant
+   `oracle.test.js` holds every move of every board to.
+7. The pose belongs to the piece, not to the step. A frog firing its own rip flicks its tongue
+   out; a frog the meter drops hops off the dial and settles as it lands; a frog caught in someone
+   else's blast does neither, because the blast removes it and the rip that blast seeds excludes
+   its cell. Reading it off the step instead would put a tongue on a frog that was simply standing
+   there.
+8. The meter is a move readout, not a state read. The engine resets the charge inside the same
+   `swap()`/`tap()` call that fills it (`packages/engine/src/game.js`), so
+   `game.state().meter.charge` is already 0 by the time the HUD reads it and a full meter is
+   visible nowhere in the engine's state — which is why the old pip row could never show one.
+   `buildMove` returns `meterFrames` (`{ at, charge, full }`, one per `meter` step plus the zero
+   frame the drop leaves behind) and the dial samples them against the board's clock like every
+   other animation. Between moves the engine is still the truth, and a board rebuilt from it takes
+   the dial with it.
+9. The charge is clamped where it is drawn, not where it is counted. The engine legitimately
+   reports 11 on a full of 10, because nothing caps `addCharge`, so `arcFor` rounds and clamps to
+   a whole notch before it asks for a picture, and `arcXml` clamps again as it draws one — which
+   also bounds the arc cache at eleven pictures for a full meter, however often the readout is
+   asked. An arc at charge 0 draws nothing at all rather than a zero-length dash, whose round cap
+   would paint a dot at twelve o'clock.
+10. The dial is not on the board. `PlayScreen` owns the left column and draws `<Meter>` under the
+    goals panel per §11; `Board` publishes the dial's props once through `onMeter` — which meter
+    the level runs on, and the shared value it writes the charge into — and the screen adds the
+    one thing only the measured column knows, the size. That size is the measured column less what
+    the panel above it needs, held to 56–100 pt (owner), so a four-goal level shrinks the dial
+    rather than pushing the move counter off the screen, which is the one thing the owner asked
+    never to happen.
+11. One rounded font (§16), loaded at runtime. `useFonts` from `expo-font` in `App.jsx`, the four
+    Fredoka faces from `@expo-google-fonts/fredoka`, and the splash held until loaded-or-error —
+    a font that fails to download must not strand a player on a splash screen, and the system
+    font is ugly and playable. Runtime rather than the `expo-font` config plugin because the
+    plugin copies the .ttf files into the native projects: a new dev-client build, a moved
+    fingerprint runtime version and every OTA channel orphaned, and it does not work in Expo Go,
+    which is where the game is played today.
+12. Every `Text` names a `fontFamily` from `src/art/type.js` and never a `fontWeight`. React
+    Native has no synthetic bolding for a custom family: on Android a weight no loaded face
+    matches does not embolden Fredoka, it silently falls back to the system font, so a "bold"
+    label renders in the wrong typeface entirely — and it renders correctly on iOS, which is how
+    the bug ships. The weight is baked into the family name instead.
+13. The six hexes are authored, not sampled (owner): `palette.js` is the delivery, not a stand-in
+    for one. They are luminance-tuned so no two yarns merge in greyscale — spread 58 / 100 / 124 /
+    150 / 176 / 202 with the hue families preserved, the tightest step rust to olive at 23.79 —
+    and `assertGreyscaleSpread()` guards that spread, so a later colour tweak cannot quietly cost
+    board readability. Changing a hex means re-running that guard.
+14. Still outstanding in phase 5, with nothing built so far depending on them: the drawn blast
+    rings, the clear particles, the confetti and the coin pile, the sounds, the haptics, the
+    ~5 s idle hint, and the Reduce Motion feature (convention 16 fixed the defect, not the
+    feature). Slice 1 took three things off this list on 2026-09-13 — the coaster illustration
+    and `coin()`, both of which the win screen now draws, and the level card, which is convention
+    15 — but not the level list on Home, which is still the phase-0 row of buttons until the
+    Room replaces that screen in phase 6. Some of the art is drawn and still not on a phone: no
+    level carries a 3-layer tangle or a knot, Book 1 level 1 included, so `tangle(3)` and
+    `knot()` cannot be seen until `docs/LEVELS-BOOK1.md` reaches its tangles at level 4 and its
+    knots at level 8.
+15. The level card is a cover over a mount, not a screen — which is why it is a step inside
+    `PlayScreen` rather than the modal route §11 specified (owner, 2026-09-13). Opening a 9×9
+    costs a measured 1845 ms on the minimum spec (§16 source 1), and no route can cover that:
+    the screen measures the arena on one commit and mounts `<Board>` on the next, so the
+    expensive commit lands after `onLayout` returns, whatever screen was on top while it waited.
+    What covers it is the deferral. `PlayScreen` paints the card, measures the arena, and only
+    then schedules a double `requestAnimationFrame` before setting the flag that lets the board
+    mount — double because a `requestAnimationFrame` callback runs *before* the frame it was
+    scheduled for is drawn, so a single one would still land the stall on the card's first
+    frame. It is the standard "let it paint first" idiom and a heuristic, not a proof that the
+    frame reached the glass. `Board` reports back through a new `onReady` prop, fired from an
+    `onLayout` on its root — the commit that carries the Cells and the Pieces — and not from
+    `onState`, which is a passive effect and runs when React commits, which is the *start* of
+    native mounting. Play is drawn from the first frame and inert until that signal: during the
+    mount the JS thread could not answer a press anyway, and a live-looking button that takes a
+    press and drops it reads as broken. Back is live from frame one, so a wrong level is never a
+    wait, and a 4000 ms timer flips ready regardless, so a signal that never arrives degrades to
+    a wait and never to a trapped player.
+16. Every `withTiming` and `withRepeat` in the app settles its `reduceMotion` on purpose, and
+    what decides it is what the animation is *for*. Reanimated finishes a reduced animation on
+    its first frame — it sets the value to its end and reports done — so anything that is a
+    clock or a readout rather than movement has to name `reduceMotion: ReduceMotion.Never` or it
+    stops being one: with the OS toggle on, the board's move clock landed on its last instant
+    and ran `finishMove` before a piece had drawn, while the shuffle's wall-clock timers ran on
+    to their own schedule (a live defect, found and fixed 2026-09-13). Named `Never`: the move
+    clock, the two shuffle fades, the dial's arc cross-fade, and the frog's blink — the blink
+    on the *repeat*, because a reduced `withRepeat` stops after one repetition and a reduced
+    `withDelay` drops its delay, which is a frog that shuts its eyes once at mount and never
+    opens them. Left at the system default, deliberately and each with a comment saying why: the
+    frog's wiggle, the level card's fade-out and the win screen's reveal, which are decoration
+    and lose nothing but the motion. The convention is the greppable part; the feature —
+    suppressing the fall's overshoot, the blast shake and the particles — is still to build.
+17. A project has an illustration, and exactly one file says which projects have one. Every level
+    JSON already carried a `project` key (§10); slice 1 gave it meaning. `projects.js` reads the
+    key off a level (`projectKeyOf`, pure, so node tests it) and `illustrations.js` files that key
+    against two PNG `require()`s — `{ empty, done }`, with Metro picking the 1×/2×/3× density.
+    They are two files for the reason `compose.js` and `sprites.js` are: a `require()` of a PNG
+    cannot run under `node --test` at all — `require` is not defined in an ES module scope — so a
+    test that imported `illustrations.js` would fail on that import instead of reaching the art,
+    and take the rest of that file's tests down with it. `projects.test.js` reaches the Metro half
+    by reading that source as text instead, parsing every `require()` path and every project key
+    out of it. The list of keys therefore lives in `illustrations.js` and nowhere else — a mirror
+    of it would be testable, would pass, and would still let a caller be told a project has art
+    while `illustrationFor` came back null, on a screen whose only way out is Home. A project with
+    no art is the documented answer rather than a fault: `illustrationFor` returns null and
+    nothing is drawn, no placeholder box, which today is all five development boards and the
+    fourteen Book 1 projects phase 6 draws. The level card draws `empty` beside the goals, and the
+    win screen fades `done` in on a win and shows `empty` on a loss at **full** opacity — always
+    on cream and never over the result screen's dark scrim, because the delivered PNGs carry a
+    low-alpha cream wash at their border that haloes on anything dark. The line drawing is already
+    a ghost: measured over its own ink on that cream card it is 20.8 grey values off the cream on
+    average and 49.9 at its darkest pixel, so the 0.55 that "unfinished" suggests leaves 11.5,
+    which is not a fainter picture but no picture. Nothing on that screen mentions the room
+    (owner, 2026-09-13): it does not exist until phase 6, and promising a shelf the player cannot
+    visit is worse than saying what the level paid.
+
 **Build order.** Each phase has a "done when" so you know when to move on.
 
 1. **Engine, no screen.** `packages/engine` as a pure JS package with Jest tests: board generation with no starting matches, match detection, swap legality, gravity and refill, cascades, scoring. Plus a small node script that plays random moves and prints the board as text. *Done when the tests pass and a text board plays itself in the terminal.* *(Built 2026-09-11: `npm run play -- packages/engine/fixtures/coaster-5x5.json`.)*
 2. **Bare board on your phone.** `apps/mobile` (Expo). Placeholder pieces (colored circles in the six palette colors), swipe to swap, the step player animating clears, falls and spawns. No backgrounds, no HUD. *Done when you can play on your own phone and it feels smooth.* *(Built 2026-09-11: Home → Play on the sandbox board; `npm run test:mobile`.)*
 3. **Specials and the meter.** Puff, Bobble, Popcorn, Yarn Bomb, the frog meter and the Hook, firing by swap, double-tap and chain, each with a big visible blast. The rules in §4 were settled by decision on 2026-09-10; no Fishdom session is needed. *Done when every row of the table in §4 works and reads clearly.* *(Built 2026-09-11.)*
 4. **Level rules.** JSON loader, the five goal types, the three blockers, the goals bar, move counter, win/lose, Yarn Over with coins. Three hand-written test levels. *Done when you can load a level file, win it, lose it, and watch stitch squares fill in.* *(Built 2026-09-11: Home lists the development boards; `npm run play -- packages/levels/levels/dev/moths-7x7.json`.)*
-5. **Vertical slice: finish level 1 completely.** Art enters here. Real SVG yarn balls and specials in her palette, the level card, HUD, win screen with the project illustration, sounds, haptics. *Done when you'd hand her the phone with only this level on it.*
+5. **Vertical slice: finish level 1 completely.** Art enters here. Real SVG yarn balls and specials in her palette, the level card, HUD, win screen with the project illustration, sounds, haptics. *Done when you'd hand her the phone with only this level on it.* *(In progress 2026-09-13. Level 1 exists: `packages/levels/levels/book1/001.json`, so `listLevels()` is no longer empty and a production build has a Play button. The board itself is drawn — the pieces, the specials, the blockers, the stitch squares, the goal icons, the meter's dial and the game's font — and measured on a device, §16 source 1. The level card is in, as a step inside `PlayScreen` that covers the board's mount, and the win screen shows the coaster the level made beside the coins it paid. What is left of this phase: the drawn blast rings, the clear particles, the confetti and the coin pile, the sounds, the haptics, the ~5 s idle hint, and the Reduce Motion feature — 2026-09-13 fixed that defect, not that feature.)*
 6. **Book 1 and the Craft Nook end to end.** The room as home screen, the shop, placing and moving decor, beauty stars, three creatures with idle animations, projects placing themselves, save/load, lives, boosters, win streak, daily basket, Pattern Book. Author levels 1–15 per `docs/LEVELS-BOOK1.md` ("Twelve Coasters" as the finale) and tune them with bot sims. *Done when Book 1 plays start to finish, the Nook reaches 3 stars, and everything survives an app restart.*
 7. **Backend, wallet, grants and purchases.** `apps/api` (Express + MongoDB on Heroku, mirroring canvass-app), accounts, the wallet ledger with offline caching, grants, codes, the VIP flag, the admin page, Redeem Code and Delete Account in Settings, RevenueCat with marker packs, the Starter Bundle and the Yarn Bank (sandbox only), the gift popup. *Done when you can grant yourself 50 markers from the admin page and watch them arrive on your phone, redeem a code, buy a pack in sandbox, and see every event in the ledger.*
 8. **Art and content pass.** Rooms 2–3, decor sets, more creatures, project illustrations (one style phrase, §16), books 2–3. *Done when 45 levels and 3 rooms have their art.*
@@ -598,12 +760,12 @@ without the owner.
 
 *(How the assets actually get made is in §16.)*
 
-- **Mood:** a yarn shop on a rainy afternoon. Cream background, warm wood, soft shadows. Nothing glossy.
-- **Yarn balls:** flat circles with two curved strands; each color also gets a subtle distinct texture or strand pattern so pieces are readable by shape as well as color.
-- **Specials:** a Puff is a small fluffy bump on the ball; a Bobble is a bigger, rounder one; a Popcorn is a cluster; a Yarn Bomb is a ball wrapped in a wild rainbow of strands with a fuse of yarn. Each should read as "bigger than the last" at a glance. The Frog is a small green amigurumi frog that blinks; the Hook is a wooden crochet hook.
+- **Mood:** a yarn shop on a rainy afternoon. Cream background, warm wood, soft shadows. Matte, never glossy: real yarn is fuzzy, and a plastic-looking ball would read as the wrong material.
+- **Yarn balls (decided 2026-09-11):** **soft dimensional**, not flat — a warm side light, a shaded underside, a soft contact shadow where the ball meets the board, so it reads round and tactile at 34 pt. Two curved strands, and each color also gets a distinct strand pattern so pieces are readable by shape as well as color. The shading is drawn into the vector, so the pieces still recolor and scale from phone to iPad for free; a fully rendered look (modelled, lit and exported per color) was considered and turned down for costing the recolor and the scale without suiting wool.
+- **Specials:** a Puff is a small fluffy bump on the ball; a Bobble is a bigger, rounder one; a Popcorn is a cluster; a Yarn Bomb is a ball wrapped in a wild rainbow of strands with a fuse of yarn (as delivered in phase 5 it **replaces** the ball rather than riding it, so the yarn's own colour is not readable in play — owner, 2026-09-12). Each should read as "bigger than the last" at a glance. The Frog is a small green amigurumi frog that blinks; the Hook is a wooden crochet hook.
 - **Creatures:** amigurumi style, visible stitch texture, safety-eye dots. Two or three idle animations each (blink, sway, hop).
 - **Rooms:** soft illustrated interiors with clear placement spots; furniture as separate layered sprites so the room can be rearranged.
-- **Project illustrations:** simple line drawings that fill in stitch by stitch as the goal progresses. The win screen and the Pattern Book show the illustration; her photos are references for the artist and are never shown.
+- **Project illustrations:** simple line drawings that fill in stitch by stitch as the goal progresses (the coaster delivered in phase 5 is two states instead — empty and finished — and the fill is not built: the pair is the same drawing on the same crop, so neither can be revealed a stitch at a time; §11's art convention 17). The win screen and the Pattern Book show the illustration; her photos are references for the artist and are never shown.
 - **Sound:** soft yarn "thup" on match, a growing "poof" for each blast size, a quiet ribbit when the frog lands, a snip for scissors, a warm chime for *Fastened off!*, a little coin jingle. Haptics on matches and blasts.
 
 ---
@@ -611,7 +773,7 @@ without the owner.
 ## 13. Tribute touches (public-safe)
 
 - Her real projects as levels, drawn as illustrations. Her photos are references for the artist only (`docs/reference/photos/`) and never ship in the app.
-- Her yarn palette: six colors sampled from the reference photos, with invented display names (§15, `docs/design/BRIEF.md`).
+- Her yarn palette: six colors in the hue families of the reference photos, with invented display names (§15, `docs/design/BRIEF.md`).
 - Credits: "For Faith, who is at level 7000." (owner-approved 2026-09-10). Her first name appears here and in the hidden level's note, nowhere else; never her surname, never her photos.
 - A guide character in the spirit of Fishdom's Tina the Turtle: **Skein the Sheep**, an amigurumi sheep who explains new mechanics, delivers gift popups and comments on the room.
 - Her account carries the VIP flag and the profile title **Level 7000 Legend**.
@@ -643,12 +805,12 @@ From the photos and video shared in September 2026:
 | What she made | What it tells us | In the game |
 |---|---|---|
 | Big granny-square blanket: chocolate-brown joins, squares in mustard, oat, blush, rust, lavender, taupe | She finishes large projects. This is the palette. | Book 2 finale, **"The Big Brown Blanket"**: full 9×9 Stitch level with 2-layer squares; its illustration is the reward, and it lands on the Living Room sofa |
-| A set of twelve puff-stitch coasters (olive, butter, taupe, blush) with the yarn cakes beside them | Sets and repetition; the yarn cakes are the game pieces. | Book 1 finale, **"Twelve Coasters"**: stitch exactly 12 marked squares laid out in two rows of six. Earlier in the book, **"Puff Flower"**: a Collect level where one coaster fills in ring by ring. The coasters stack on the Nook's side table |
+| A set of twelve puff-stitch coasters (olive, butter, taupe, blush) with the yarn cakes beside them | Sets and repetition; the yarn cakes are the game pieces. | Book 1 finale, **"Twelve Coasters"**: stitch exactly 12 marked squares laid out in two rows of six. Earlier in the book, **"Puff Flower"**: a Collect level where one coaster fills in ring by ring. The coasters stack on the Nook's side table. The first of them is authored (2026-09-13): Book 1 level 1, **"Coaster (olive)"**, a 5×5 round-ish Stitch board carrying the project key `coaster_olive`, and it is so far the only project with art — two PNG states, `empty` and `done`, that the win screen draws. The pair is the designer's first pass and ships as-is (owner); the re-cut is queued |
 | Olive ribbed tote with two straps | Bags, texture, solid-color work | **"The Olive Tote"**: trapezoid board with two strap columns on top; collect 60 olive and the bag fills in row by row. Hangs on a wall hook in the Bedroom |
 | Gray crochet butterfly with beaded tails, made as a tumbler charm; a bead organizer nearby | Accessories and charms with beads are a current thing | Butterfly-shaped board (four wings with a narrow body column down the middle); the ingredient piece is a **bead**, and the beads fall through the body to become the tails. Book 3 is **Bags, Butterflies & Charms** |
 | Spiral wind spinner in yellow, pink and gray, filmed spinning on the balcony | Playful 3D pieces; she films her work | **"Twirly"**: tall narrow board, Collect in three colors; the finished spinner spins on the win screen and then on the Balcony |
 
-**Palette** (the six keys are fixed in code; each color also gets an invented, crochet-flavoured display name for the Pattern Book, see `docs/design/BRIEF.md`; the final hexes are sampled from the reference photos in phase 5):
+**Palette** (the six keys are fixed in code; each color also gets an invented, crochet-flavoured display name for the Pattern Book, see `docs/design/BRIEF.md`; the hexes were **authored and delivered** in phase 5, not sampled — owner, 2026-09-12 — and live in `apps/mobile/src/art/palette.js`):
 
 | Key | Color | Seen in |
 |---|---|---|
@@ -659,7 +821,7 @@ From the photos and video shared in September 2026:
 | `lavender` | dusty lavender-blue | blanket |
 | `cocoa` | chocolate brown | blanket joins, yarn cake |
 
-The board background is warm cream (oat), so cream is not a piece color. Each color also gets its own strand pattern so pieces read at a glance, not just by hue.
+The board background is warm cream (oat), so cream is not a piece color. Each color also gets its own strand pattern so pieces read at a glance, not just by hue. The photos were shot under warm indoor light and sample out near-neutral, so they set the hue family and the mood and nothing more; the six delivered hexes are luminance-tuned instead, spread far enough apart that no two yarns merge in greyscale, and `assertGreyscaleSpread()` in `palette.js` guards that spread so a later color tweak cannot quietly cost board readability.
 
 Leave out the plush toys and the tumbler brand visible in the photos; they're other people's IP, and her work is the point.
 
@@ -674,14 +836,14 @@ Step → animation (starting values; tune by feel):
 | Step | What moves | Duration |
 |---|---|---|
 | `swap` | both pieces slide to each other's cell; illegal swaps slide out and bounce back | 150 ms (2×120 ms if illegal) |
-| `clear` | pieces scale to 0 and fade; 6–8 tiny yarn-fluff particles fly outward (the particles arrive with the art in phase 5) | 120 ms |
+| `clear` | pieces scale to 0 and fade; 6–8 tiny yarn-fluff particles fly outward (the pieces are the drawn art from phase 5; the particles are still outstanding in it — slice 1 did not bring them) | 120 ms |
 | `blast` puff | quick pop, a small plus-shaped puff of fluff | 150 ms |
-| `blast` bobble / popcorn / yarn bomb | scale pulse, then a ring expands to the blast radius; pieces pop as the ring reaches them. Bigger radius, bigger ring, longer shake. From phase 3 the pulse, the outward pop wave and a board shake that grows with the size carry it; the drawn ring arrives with the art in phase 5 | 250 / 350 / 450 ms |
+| `blast` bobble / popcorn / yarn bomb | scale pulse, then a ring expands to the blast radius; pieces pop as the ring reaches them. Bigger radius, bigger ring, longer shake. From phase 3 the pulse, the outward pop wave and a board shake that grows with the size carry it; the drawn ring is still outstanding in phase 5 — slice 1 did not bring it either | 250 / 350 / 450 ms |
 | `blast` hook | three streaks sweep along the rows or columns | 250 ms |
-| `frogRip` | frog hops in place, tongue flick, every ball of that color pops in a wave outward from the frog | 400 ms |
-| `meter` | the meter fills a notch; the frog wiggles when it's full | 150 ms |
-| `meterDrop` | the frog (or hook) hops from the meter onto its cell | 300 ms |
-| `blocker` | tangle/moth/knot shakes and loses a layer; a stitch square flips to "stitched" with a scale pop | 150 ms |
+| `frogRip` | the frog flicks his tongue out — `POSE.tongue`, an instant swap between drawings rather than a tween — swells and goes with the rest; every ball of that color pops in a wave outward from him, the furthest as the window closes | 400 ms |
+| `meter` | the dial's fill arc grows a notch: one drawing per notch, cross-faded, not an animated stroke. The frog on the dial blinks while he waits and wiggles for as long as the readout reads full — reachable only because the dial samples the move's `meterFrames` and not `state()`. It runs off the board's clock and costs the move no time | 150 ms |
+| `meterDrop` | the frog hops off the dial onto its cell (`POSE.hop`) and settles back to rest as he lands; the hook simply arrives. The readout drops to zero in the same breath | 300 ms |
+| `blocker` | tangle/moth shakes and loses a layer — the three drawn tangle densities cross-fade and there is no numeral (owner, phase 5) — and a stitch square flips to "stitched" with a scale pop; a knot's step is credit only and draws nothing (§11, phase-4 conventions 2 and 12) | 150 ms |
 | `fall` | translateY to the new cell with a slight overshoot (ease-out-back; `FALL_OVERSHOOT` in the step player's `timings.js`) | 200 ms |
 | `spawn` | new pieces fall in from above their run: the i-th of n starts n − i rows above the run's top, or on the hole cell above a run fed through one | 200 ms |
 | `shuffle` | "Untangling…": the board fades out and fades back in at the snapshot's positions; a full rebuild from `board`, no per-piece movement | 400 ms |
@@ -689,22 +851,48 @@ Step → animation (starting values; tune by feel):
 | `beadExit` | bead drops off the bottom edge and lands on the project illustration | 250 ms |
 | `yarnOver` | specials fire one by one, coins fly to the counter, then confetti (Lottie) and the *Fastened off!* banner slides in | ~1.5 s |
 
-**Libraries:** `react-native-reanimated` (movement), `react-native-gesture-handler` (swipes and taps), `react-native-svg` (vector pieces), `lottie-react-native` (confetti, sparkles, stars), `expo-haptics`, `expo-audio` (sound; `expo-av` no longer ships with the Expo SDK), `expo-image` (illustrations and room backgrounds). `@shopify/react-native-skia` only if you want fancier particles later.
+**Libraries:** `react-native-reanimated` (movement), `react-native-gesture-handler` (swipes and taps), `react-native-svg` (vector pieces), `lottie-react-native` (confetti, sparkles, stars), `expo-haptics`, `expo-audio` (sound; `expo-av` no longer ships with the Expo SDK), `expo-image` (room backgrounds and large illustrations; **not installed**, and the win screen's two bundled PNGs use react-native's own `<Image>` instead — expo-image is a native module, so adding it moves the fingerprint runtime version `app.json` pins and `apps/mobile/scripts/ota-check.mjs` polices, orphaning every fielded binary from its OTA channel. That is a boundary worth crossing once, with phase 6's room), `expo-font` with `@expo-google-fonts/fredoka` (the UI font, loaded at runtime; §11's art conventions say why not the config plugin). `@shopify/react-native-skia` only if you want fancier particles later.
 
 **Where the images come from.** Four sources; mix them.
 
-1. **Code-drawn vector art (SVG)** for everything on the board: the six yarn balls, the four special overlays, frog, hook, bead, button, tangle layers, knot, moth, stitched/unstitched tiles, UI icons. Claude writes these as SVG components (here or in Claude Code). Consistent style, scales perfectly from phone to iPad, recolors in one line, nothing to license. Start here; it covers v1's board completely.
+1. **Vector art (SVG)** for everything on the board: the six yarn balls, the four special overlays, frog, hook, bead, button, tangle layers, knot, moth, stitched/unstitched tiles, UI icons. **The designer delivers these as production SVG** (decided 2026-09-11) and the build wires them in; the brief in `docs/design/BRIEF.md` is the work order. Scales perfectly from phone to iPad, recolors in one line, nothing to license. It covers v1's board completely. **Delivered 2026-09-12** (phase 5): `apps/mobile/src/art/pieces.js` is that delivery — every board svg as a string factory — with `palette.js`'s six authored hexes beside it; `compose.js` glues them into one document per appearance and `sprites.js` parses each composed string once (§11, "Art conventions"). If a 9×9 board of them ever costs frames on a real phone, the fix is exporting the same files to PNG at 1×/2×/3× and swapping the component — the step player hands the renderer plain numbers, so the renderer is replaceable without touching the game. **That fallback has not been needed, and here is exactly how far that has been established.** Three runs, all by the owner on 2026-09-12.
+
+| | iPhone 17 Pro, dev | iPhone 17 Pro, `--no-dev --minify` | Moto G Play 2023, dev | Moto G Play 2023, release APK |
+|---|---|---|---|---|
+| at rest | 60/60 fps | 60/60 fps | 59/59 fps | — |
+| lowest seen | 43 fps (frog rip) | 54 fps (frog rip) | JS to 0 (board open) | — |
+| layout | 1.2 ms | 0.5 ms | 9.0 ms | — |
+| RAM | 559 MB | 463 MB | 337 MB | — |
+| board open | — | — | 6678 ms | **1845 ms** |
+
+The 9×9 sandbox shows roughly 2,100 svg nodes in 81 roots, and the static board costs nothing anywhere: every device holds its refresh rate at rest, so the cost is all at mount and during the heaviest animation. The Moto G Play 2023 is a floor-of-market Android and is the minimum spec this game is measured against.
+
+**Where the board-open cost actually goes**, measured on the Moto by instrumenting the phases and then swapping one variable at a time (a dev-build ladder, so read the ratios rather than the absolute numbers): with pieces drawn as svg, 6678 ms; with each piece a single plain `View` instead, 2988 ms; with the pieces drawing nothing at all but every hook still running, 2884 ms. So 81 native views cost 104 ms — nothing — and the ~2,100 svg nodes inside them cost 3690 ms, about 55%. The remaining 2884 ms is React and Reanimated mounting 162 memoised components with worklets, which no renderer change would touch. Everything else was ruled out by measurement rather than argument: `createGame` is 9 ms in release, `buildModel` 2 ms, and parsing all the svg strings totals about 174 ms of the stall.
+
+**The decision that follows (2026-09-12).** The fallback stays unused. 1845 ms on the minimum spec is a loading problem rather than a rendering one, and the level card §11 already schedules covers it — a card over the mount turns a freeze into a transition, for art that was being built anyway. Revisit if Book 1's boards prove heavier than a sandbox 9×9, or if a level card does not land.
+
+**The card landed (2026-09-13), and here is exactly what that showed.** It is built as a step inside `PlayScreen` rather than as a route, because only the screen that measures the arena can hold the board's mount back (§11, art convention 15). Measured by the owner on an iPhone 17 Pro, in Expo Go, on a **development** bundle, off `PlayScreen`'s two `__DEV__` logs — the mount, then the board's `onReady`:
+
+| Board | Ready, under the card |
+|---|---|
+| Book 1 level 1, 5×5 | 172–298 ms |
+| Sandbox 9×9 | 242–250 ms |
+| Ring coaster, 7×7 | 269 ms |
+| Charm tail, 7×7 | 206 ms |
+| Moths in the stash, 7×7 | 210 ms |
+
+Every board reports in well under a third of a second, and it reports from behind a frame that has already been painted rather than from on top of a frozen one. That is the deferral working. It is **not** a measurement of the 1845 ms the card exists to cover: that number is the Moto G Play 2023 in a release APK, and **the Moto has not been retested with the card**. The release-APK column above is still the last word on the minimum spec, and it still has no with-card reading in it.
 2. **AI image generation** for illustrations: project art (pumpkin, cat, tote), room backgrounds, decor items, creatures. Any generator works; Canva's Magic Media plus its background remover covers both steps. Fix one style phrase and reuse it in every prompt so the set matches, e.g. *"flat vector illustration of a crocheted [thing], cozy, soft shadows, plain cream background, no text"*. Generate on a plain background, remove it, export PNG at 1×/2×/3× (e.g. 200/400/600 px). Expect a few regenerations per image to get a matching set. Creatures need 2–3 poses each for idle animation, so generate them as a set.
 3. **Free packs** for the rest: Kenney.nl (CC0: UI, particles, audio), LottieFiles free animations (confetti, sparkles, star bursts; check each file's license), Google Fonts via `@expo-google-fonts` (rounded and friendly: Nunito, Fredoka, Baloo 2), Pixabay or Freesound for sound effects (check licenses; Kenney's audio packs are the safe default).
 4. **Her real work** as reference only. The photos live in `docs/reference/photos/` (kept out of git) for the illustrator and the style sheet; nothing from them ships in the app. The Pattern Book and win screens use illustrations in the §12 style.
 
 **v1 asset checklist**
 
-- Board pieces (SVG): 6 yarn balls, Puff / Bobble / Popcorn / Yarn Bomb overlays, frog (meter, idle, hop), hook, bead, button, tangle ×3 layers, knot overlay, moth, unstitched ×2 layers, stitched tile, board background, meter frame.
-- Effects: clear puff, blast rings, hook streaks, frog wave (all code); confetti and star pop (Lottie).
-- UI (SVG or Kenney): buttons, panels, hearts for lives, coin, booster icons (scissors, lint roller, darning needle, loosen, two bobbles, frog ready, popcorn & frog), move counter, goals bar icons.
+- Board pieces (SVG): 6 yarn balls, Puff / Bobble / Popcorn / Yarn Bomb overlays, frog (meter, idle, hop), hook, bead, button, tangle ×3 layers, knot overlay, moth, unstitched ×2 layers, stitched tile, board background, meter frame. **Delivered 2026-09-12** in `apps/mobile/src/art/pieces.js`, with the Yarn Bomb replacing the ball rather than overlaying it (owner) and the frog carrying a blink and a tongue as well. `tangle(3)` and `knot()` are drawn but nothing shows them: no development level carries either, and neither does Book 1 level 1, so they stay unseen on a phone until `docs/LEVELS-BOOK1.md` reaches its tangles at level 4 and its knots at level 8.
+- Effects: clear puff, blast rings, hook streaks, frog wave (all code); confetti and star pop (Lottie). The frog wave, the blast pulse and the board shake are built; the clear puff, the drawn rings, the hook streaks and the confetti are not, and slice 1 brought none of them. What slice 1 did do is release the commission: `docs/design/BRIEF.md` holds the confetti and the coin burst back until level 1's static art is in and moving on a phone, and as of 2026-09-13 it is, so they are the designer's next piece of work rather than something competing with it. `lottie-react-native` is not installed yet.
+- UI (SVG or Kenney): buttons, panels, hearts for lives, coin, booster icons (scissors, lint roller, darning needle, loosen, two bobbles, frog ready, popcorn & frog), move counter, goals bar icons. The goals-bar icons are delivered (24×24, one per goal type and then per colour or blocker) and the level card draws them at their authored size beside the counts; the coin is drawn and, from 2026-09-13, the win screen puts it beside the coins figure — the static coin, not the coin burst. The rest wait on phase 6.
 - Rooms and decor: 3 room backgrounds for v1, ~30 decor items in sets, 5–6 creatures with 2–3 poses each.
-- Project illustrations: one per level (fifteen for Book 1, ids in `docs/design/BRIEF.md`); simple SVGs may stand in for minor projects until phase 8.
-- Audio: match, four blast sizes, frog land, frog rip, hook, fall, bead, stitch, coin, win jingle, lose, tap.
+- Project illustrations: one per level (fifteen for Book 1, one per row of `docs/LEVELS-BOOK1.md`, whose foot fixes how their ids are spelled); simple SVGs may stand in for minor projects until phase 8. **One delivered:** `coaster_olive`, in the two states the level card and the win screen draw — `empty` and `done`, PNG at 1×/2×/3×, 200 pt square at 1× — filed in `apps/mobile/src/art/illustrations.js` under the `project` key Book 1 level 1 carries, and drawn from 2026-09-13. It ships as the designer's first pass (owner): the empty state is the finished piece desaturated rather than the line drawing the brief ordered, and the re-cut queued with the designer costs nothing to take, because it lands as the same six filenames.
+- Audio: match, four blast sizes, frog land, frog rip, hook, fall, bead, stitch, coin, win jingle, lose, tap. None of it exists: there is no audio file of any kind in the repo and `expo-audio` is not installed.
 - Economy UI: stitch marker icon, Continue panel with the +5 badge, marker shop with pack tiers, Starter Bundle card, Yarn Bank jar with fill states, life refill and unlimited-lives panels, gift popup, Redeem Code field.
-- One rounded font.
+- One rounded font. **Fredoka**, four weights, loaded at runtime from `@expo-google-fonts/fredoka`; `apps/mobile/src/art/type.js` is the only place a family name is written down.

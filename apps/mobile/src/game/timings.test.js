@@ -63,3 +63,19 @@ test('the cell knobs stay small, so a nudge never reads as a piece moving', () =
   // the last special of the win bonus must still have room to pop in before its window closes
   assert.ok(T.YARN_OVER_PLACE_MS >= T.CREATE_MS);
 });
+
+test('POSE names the three frog pictures, frozen, as distinct integers', () => {
+  assert.deepEqual(T.POSE, { rest: 0, hop: 1, tongue: 2 });
+  assert.ok(Object.isFrozen(T.POSE));
+  const poses = Object.values(T.POSE);
+  for (const pose of poses) assert.ok(Number.isInteger(pose), `${pose}`);
+  // the sampler picks a picture by value, so two poses that share one are the same pose
+  assert.equal(new Set(poses).size, 3);
+});
+
+test('the frog idle knobs: a blink, the gap between blinks, and a wiggle', () => {
+  for (const key of ['BLINK_MS', 'BLINK_GAP_MS', 'WIGGLE_MS', 'WIGGLE_DEG']) {
+    assert.equal(typeof T[key], 'number', key);
+    assert.ok(Number.isFinite(T[key]) && T[key] > 0, `${key} = ${T[key]}`);
+  }
+});

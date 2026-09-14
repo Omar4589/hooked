@@ -4,6 +4,7 @@
 // and when — and, for every cell whose layers change, what that cell shows and when. Nothing
 // here knows about React or Reanimated: the result is numbers.
 
+import { METER_FULL } from '@hooked/engine';
 import { buildModel, cloneModel } from './model.js';
 import {
   BEAD_EXIT_DROP,
@@ -23,6 +24,7 @@ import {
   MOTH_LUNGE,
   MOTH_MS,
   POP_MS,
+  POSE,
   PULSE_SCALE,
   PULSE_SHARE,
   RIP_MS,
@@ -46,7 +48,10 @@ import {
  * @property {Map<string, CellTrack>} cells  what each touched cell's layer does, keyed `x,y`
  * @property {{ at: number, before: Model }|null} shuffle
  * @property {{ at: number, duration: number, amplitude: number }[]} shakes  board-wide wobbles
- * @property {number|null} meter  the charge this move ended on, when it changed
+ * @property {{ at: number, charge: number, full: number }[]} meterFrames  what the readout
+ *   shows and when: one frame per meter step, plus the zero the drop leaves behind. The engine
+ *   zeroes the charge inside the same call that fills it, so state() never shows a full meter
+ *   and these frames are the only place one is ever visible
  * @property {{ at: number, coins: number, moves: number, specials: number }|null} yarnOver
  * @property {number} total      how long the move lasts, in milliseconds
  */
@@ -67,7 +72,10 @@ export const buildMove = (model, steps, base = 0) => {
   const mounts = [];
   const removed = [];
   const shakes = [];
-  let meter = null;
+  const meterFrames = [];
+  // A drop empties the readout, but the engine's `meterDrop` step carries no `full` of its own,
+  // so it borrows the one this move's meter steps used, or the constant when it charged nothing.
+  let meterFull = METER_FULL;
   let shuffle = null;
   let yarnOver = null;
   let t = 0;
@@ -108,11 +116,12 @@ export const buildMove = (model, steps, base = 0) => {
     const entry = m.pieces.get(id);
     const track = {
       base,
-      initial: { x: entry.x, y: entry.y, scale: 1, opacity: 1 },
+      initial: { x: entry.x, y: entry.y, scale: 1, opacity: 1, pose: POSE.rest },
       x: [],
       y: [],
       scale: [],
       opacity: [],
+      pose: [],
     };
     tracks.set(id, track);
     return track;
@@ -159,6 +168,17 @@ export const buildMove = (model, steps, base = 0) => {
     track.scale.push({ at, duration: ms / 2, to: CELL_POP_SCALE, easing: 'out' });
     track.scale.push({ at: at + ms / 2, duration: ms / 2, to: 1, easing: 'in' });
   };
+  /**
+   * A pose is a picture swap, not a tween: one instant set, and nothing drawn in between. A set
+   * landing at or before the start of the move writes `initial` instead of pushing a segment,
+   * because sampleProp already reads a zero-duration segment at `at = 0` as its target at t = 0
+   * — a segment there would leave sampleTrack(track, 0) disagreeing with track.initial, the
+   * start-of-move invariant oracle.test.js holds every move of every board to.
+   */
+  const poseTo = (track, at, to) => {
+    if (at <= 0) track.initial.pose = to;
+    else track.pose.push({ at, duration: 0, to, easing: 'linear' });
+  };
   /** Two layers off one cell in one window are one slide, not two. */
   const stepTo = (segments, at, ms, to) => {
     const last = segments[segments.length - 1];
@@ -176,7 +196,15 @@ export const buildMove = (model, steps, base = 0) => {
     m.pieces.set(id, { id, x: pos.x, y: pos.y, piece: { ...piece } });
     m.grid[pos.y][pos.x] = id;
     mounts.push(id);
-    tracks.set(id, { base, initial, x: [], y: [], scale: [], opacity: [] });
+    tracks.set(id, {
+      base,
+      initial: { ...initial, pose: POSE.rest },
+      x: [],
+      y: [],
+      scale: [],
+      opacity: [],
+      pose: [],
+    });
     return id;
   };
 
@@ -320,6 +348,7 @@ export const buildMove = (model, steps, base = 0) => {
         const pulse = Math.round(duration * PULSE_SHARE);
         for (const pos of step.cells) {
           const id = idAt(pos, `${step.type} cell`);
+          const entry = m.pieces.get(id);
           const track = trackOf(id);
           const origin = pos.x === step.pos.x && pos.y === step.pos.y;
           if (origin) {
@@ -331,12 +360,14 @@ export const buildMove = (model, steps, base = 0) => {
               to: 0,
               easing: 'linear',
             });
+            // The tongue belongs to the piece, not to the step: only a frog rips by flicking one
+            // out, and a frog a blast already took is not among these cells to be posed at all.
+            if (entry.piece.kind === 'frog') poseTo(track, t, POSE.tongue);
           } else {
             const at = t + (furthest === 0 ? 0 : (spread * reach(pos)) / furthest);
             track.scale.push({ at, duration: POP_MS, to: 0, easing: 'in' });
             track.opacity.push({ at, duration: POP_MS, to: 0, easing: 'linear' });
           }
-          const entry = m.pieces.get(id);
           removed.push({ id, x: entry.x, y: entry.y, piece: entry.piece });
           m.pieces.delete(id);
           m.grid[pos.y][pos.x] = null;
@@ -363,13 +394,21 @@ export const buildMove = (model, steps, base = 0) => {
           opacity: 1,
         });
         tracks.get(landed).scale.push({ at: t, duration: METER_DROP_MS, to: 1, easing: 'outBack' });
+        if (step.piece.kind === 'frog') {
+          // the frog hops off the meter onto its cell and settles; the hook simply arrives
+          poseTo(tracks.get(landed), t, POSE.hop);
+          poseTo(tracks.get(landed), t + METER_DROP_MS, POSE.rest);
+        }
+        meterFrames.push({ at: t, charge: 0, full: meterFull });
         t += METER_DROP_MS;
         break;
       }
       case 'meter': {
         // The readout lives outside the board and runs off its own clock, so the meter costs the
-        // move no time at all.
-        meter = step.charge;
+        // move no time at all. The frame is the whole sighting: this charge is gone from the
+        // engine's own state by the time the move finishes, full or not.
+        meterFull = step.full;
+        meterFrames.push({ at: t, charge: step.charge, full: step.full });
         break;
       }
       case 'shuffle': {
@@ -532,7 +571,7 @@ export const buildMove = (model, steps, base = 0) => {
     mounts,
     removed,
     shakes,
-    meter,
+    meterFrames,
     yarnOver,
     shuffle,
     total: shuffle === null ? t : shuffle.at + SHUFFLE_OUT_MS + SHUFFLE_IN_MS,

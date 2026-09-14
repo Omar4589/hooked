@@ -1,4 +1,4 @@
-// sampleTrack is the whole animation system: one pure function from (track, time) to the four
+// sampleTrack is the whole animation system: one pure function from (track, time) to the five
 // animated numbers. Everything the board does on screen is tested here and in move.test.js,
 // with no device involved.
 
@@ -6,16 +6,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { ease, sampleCell, sampleProp, sampleShake, sampleTrack } from './animate.js';
-import { FALL_OVERSHOOT } from './timings.js';
+import { FALL_OVERSHOOT, POSE } from './timings.js';
 
 const NAMES = ['linear', 'in', 'out', 'inOut', 'outBack'];
 const track = (over = {}) => ({
   base: 0,
-  initial: { x: 1, y: 2, scale: 1, opacity: 1 },
+  initial: { x: 1, y: 2, scale: 1, opacity: 1, pose: POSE.rest },
   x: [],
   y: [],
   scale: [],
   opacity: [],
+  pose: [],
   ...over,
 });
 
@@ -76,11 +77,42 @@ test('a zero-duration segment is an instant set at its time', () => {
   assert.equal(sampleProp(segs, 0, 120), 1);
 });
 
-test('sampleTrack samples the four properties and leaves untouched ones at their initial', () => {
+test('sampleTrack samples the five properties and leaves untouched ones at their initial', () => {
   const t = track({ y: [{ at: 0, duration: 200, to: 5, easing: 'linear' }] });
-  assert.deepEqual(sampleTrack(t, 0), { x: 1, y: 2, scale: 1, opacity: 1 });
-  assert.deepEqual(sampleTrack(t, 100), { x: 1, y: 3.5, scale: 1, opacity: 1 });
-  assert.deepEqual(sampleTrack(t, 200), { x: 1, y: 5, scale: 1, opacity: 1 });
+  assert.deepEqual(sampleTrack(t, 0), { x: 1, y: 2, scale: 1, opacity: 1, pose: POSE.rest });
+  assert.deepEqual(sampleTrack(t, 100), { x: 1, y: 3.5, scale: 1, opacity: 1, pose: POSE.rest });
+  assert.deepEqual(sampleTrack(t, 200), { x: 1, y: 5, scale: 1, opacity: 1, pose: POSE.rest });
+});
+
+test('a pose holds its initial until its segment, switches at it, and holds it after', () => {
+  const t = track({ pose: [{ at: 100, duration: 0, to: POSE.hop, easing: 'linear' }] });
+  assert.equal(sampleTrack(t, 0).pose, POSE.rest);
+  assert.equal(sampleTrack(t, 99).pose, POSE.rest);
+  assert.equal(sampleTrack(t, 100).pose, POSE.hop);
+  assert.equal(sampleTrack(t, 5000).pose, POSE.hop);
+});
+
+test('a pose is read from the track, not from a constant, so any initial survives', () => {
+  const t = track({ initial: { x: 1, y: 2, scale: 1, opacity: 1, pose: POSE.tongue } });
+  assert.equal(sampleTrack(t, 0).pose, POSE.tongue);
+  assert.equal(sampleTrack(t, 999).pose, POSE.tongue);
+});
+
+// A pose is a picture to draw, not a distance to cover: a frog is resting or hopping, never
+// half of each, so every sample inside a zero-duration set must be one of the two values.
+test('a pose never interpolates between two values', () => {
+  const t = track({
+    pose: [
+      { at: 100, duration: 0, to: POSE.tongue, easing: 'linear' },
+      { at: 400, duration: 0, to: POSE.rest, easing: 'linear' },
+    ],
+  });
+  const allowed = new Set([POSE.rest, POSE.tongue]);
+  for (let ms = 0; ms <= 600; ms += 7) {
+    const { pose } = sampleTrack(t, ms);
+    assert.ok(allowed.has(pose), `${ms} -> ${pose}`);
+    assert.equal(pose, ms < 100 || ms >= 400 ? POSE.rest : POSE.tongue, `${ms}`);
+  }
 });
 
 test('the sampling functions carry the worklet directive and import no react code', () => {
@@ -89,7 +121,7 @@ test('the sampling functions carry the worklet directive and import no react cod
   }
   const src = readFileSync(new URL('./animate.js', import.meta.url), 'utf8');
   assert.ok(!/from '(react|react-native)/.test(src));
-  assert.equal((src.match(/^import /gm) ?? []).length, 1); // timings only
+  assert.equal((src.match(/^import /gm) ?? []).length, 1); // timings only, however many names
 });
 
 test('the board shake starts and ends at rest and never exceeds its amplitude', () => {

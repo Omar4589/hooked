@@ -12,7 +12,7 @@ import { listDevLevels, loadLevel } from '@hooked/levels';
 import { buildModel, cellsOf, piecesOf, projectCells, projectPieces } from './model.js';
 import { buildMove } from './move.js';
 import { sampleCell, sampleTrack } from './animate.js';
-import { SWAP_MS } from './timings.js';
+import { POSE, SWAP_MS } from './timings.js';
 
 const root = new URL('../../../../', import.meta.url);
 const fixtures = new URL('packages/engine/fixtures/', root);
@@ -29,10 +29,11 @@ const boards = [
 const P = (x, y) => ({ x, y });
 const idsOf = (model) => new Set(model.pieces.keys());
 const SAMPLES = 60;
+const POSES = new Set(Object.values(POSE));
 
 /** Every property of every track, so one loop can check ordering and finiteness. */
 const eachSegments = (track, fn) => {
-  for (const key of ['x', 'y', 'scale', 'opacity']) fn(track[key], key);
+  for (const key of ['x', 'y', 'scale', 'opacity', 'pose']) fn(track[key], key);
 };
 
 /** The same for a cell's track, which has its own set of properties. */
@@ -117,6 +118,12 @@ test('buildMove reproduces the engine board and a playable timeline for every bo
           for (const track of move.tracks.values()) {
             assert.equal(track.base, base, where);
             eachSegments(track, scan);
+            // a pose is a picture to draw, not a distance to cover: every set is instant, and
+            // lands on a pose the sprite layer has a picture for
+            for (const s of track.pose) {
+              assert.equal(s.duration, 0, `${where} pose tween`);
+              assert.ok(POSES.has(s.to), `${where} pose ${s.to}`);
+            }
           }
           for (const track of move.cells.values()) {
             assert.equal(track.base, base, `${where} cell base`);
@@ -131,11 +138,38 @@ test('buildMove reproduces the engine board and a playable timeline for every bo
             assert.ok(shake.at + shake.duration <= move.total, `${where} shake outruns the move`);
             assert.ok(shake.amplitude > 0 && shake.amplitude < 1, `${where} shake amplitude`);
           }
-          // the meter is a readout, not a piece: it never costs the move time
+          // The meter is a readout, not a piece: it never costs the move time. The engine zeroes
+          // the charge inside the same swap() call that fills it, so state() never shows a full
+          // meter and the frames are the only place the HUD can read one — one per meter step,
+          // plus the zero the drop leaves behind.
           const meters = steps.filter((s) => s.type === 'meter');
-          if (meters.length > 0) assert.equal(move.meter, meters[meters.length - 1].charge, where);
+          const drops = steps.filter((s) => s.type === 'meterDrop');
+          assert.equal(move.meterFrames.length, meters.length + drops.length, `${where} frames`);
+          assert.deepEqual(
+            move.meterFrames.filter((f) => f.charge > 0).map((f) => f.charge),
+            meters.map((s) => s.charge),
+            `${where} frame charges`,
+          );
+          if (drops.length > 0) {
+            assert.ok(
+              move.meterFrames.some((f) => f.charge === 0),
+              `${where} the drop clears the readout`,
+            );
+          }
+          for (const frame of move.meterFrames) {
+            assert.ok(frame.at >= 0 && frame.at <= move.total, `${where} frame at ${frame.at}`);
+            assert.ok(frame.full > 0, `${where} frame full`);
+          }
           // and the meter drops at most one piece per move
-          assert.ok(steps.filter((s) => s.type === 'meterDrop').length <= 1, `${where} drops`);
+          assert.ok(drops.length <= 1, `${where} drops`);
+
+          // a frog that lands hops, and nothing else on the board does: this is what stops the
+          // pose sweep above from passing a buildMove that never sets a pose at all
+          const frogDrops = drops.filter((s) => s.piece.kind === 'frog');
+          const hopped = [...move.tracks.values()].filter((t) =>
+            t.pose.some((s) => s.to === POSE.hop),
+          );
+          assert.equal(hopped.length, frogDrops.length, `${where} frog hop`);
 
           // it starts where the board was and ends where the board is
           for (const [id, track] of move.tracks) {

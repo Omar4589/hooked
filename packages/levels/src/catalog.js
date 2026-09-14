@@ -1,5 +1,5 @@
 // Turning the registry into the two lists the app asks for. Pure, so the ordering and the
-// hidden-level rule are testable with made-up entries while the shipped list is still empty.
+// hidden-level rule are testable with made-up entries rather than with whatever happens to ship.
 
 /** @typedef {import('./registry.js').Entry} Entry */
 /** @typedef {{ id: number, name: string, book: number, hard: false|string }} Summary */

@@ -50,6 +50,8 @@ match, combos make one bigger blast, the frog meter fills and drops the frog, an
 sweep rows and columns. Phase 4 (the level rules) is built: levels load and validate through
 `@hooked/levels`, the five goals and the three blockers work, beads drop and leave, the goals
 panel and the move counter sit beside the board, and a level can be won (Yarn Over pays its
-coins) or lost. Not yet done: the art and the real HUD (phase 5), the room and Book 1 (phase 6),
-the Heroku app and Atlas cluster (phase 7). Phases 1–9 and their "done when" are in DESIGN.md
+coins) or lost. Phase 5 has drawn the board: real yarn, the specials, the blockers, the frog's
+poses, the meter's dial and the game's own font. Not yet done: the art around the board (the
+rest of phase 5 — the coaster illustration, level cards, blast rings, clear particles, sounds
+and haptics), the room and Book 1 (phase 6), the Heroku app and Atlas cluster (phase 7). Phases 1–9 and their "done when" are in DESIGN.md
 §11; phase 0's is the setup prompt in docs/PROMPTS.md.

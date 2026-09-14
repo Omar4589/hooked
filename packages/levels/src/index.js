@@ -13,7 +13,7 @@ export const LEVEL_FORMAT_VERSION = 1;
 const catalog = buildCatalog(REGISTRY);
 
 /**
- * Every shipped level, in play order. Empty until Book 1 is authored in phase 6.
+ * Every shipped level, in play order: Book 1 level 1, with levels 2-15 to follow in phase 6.
  * @returns {{ id: number, name: string, book: number, hard: false|string }[]}
  */
 export const listLevels = () => catalog.shipped.map((summary) => ({ ...summary }));

@@ -40,6 +40,12 @@ The public name is **Yarn Over**; "Hooked" is the codename for the repo, the EAS
   the move timeline) imports nothing from react or react-native and ships with
   a `node --test` test; anything a gesture or an animated style calls runs on
   the UI thread, so it carries a `'worklet'` directive.
+- `apps/mobile/src/art` splits the same way and must stay split: `pieces.js`
+  and `compose.js` are plain strings and are node-tested, `sprites.js` parses
+  those strings into react-native-svg ASTs and cannot be, because importing
+  `react-native-svg` reaches `react-native` itself, whose Flow-typed source
+  plain node will not parse. Merging the two would read as tidying and would
+  silently delete `compose.test.js`'s reach.
 - Levels are JSON in `packages/levels` and follow `docs/DESIGN.md §10`.
   Never hardcode a level in code: the app asks `@hooked/levels` for them
   (`listLevels`, `listDevLevels`, `loadLevel`), and a new level is one JSON
@@ -50,8 +56,18 @@ The public name is **Yarn Over**; "Hooked" is the codename for the repo, the EAS
   specials `puff, bobble, popcorn, yarnbomb, hook`; piece kinds `yarn, frog, bead`; goals
   `stitch, collect, beads, clear, buried`; blockers `tangle, knot, moth`.
   They live once, in `packages/engine/src/constants.js`.
-- Placeholder art (colored circles) until phase 5. Don't add or generate
-  images before then.
+- The board's art is vector and lives in `apps/mobile/src/art` (phase 5):
+  `pieces.js` is the designer's delivery, every board SVG as a string factory
+  on a 100x100 viewBox; `palette.js` the six yarn hexes; `compose.js` the
+  string composition; `sprites.js` the parsed ASTs the components draw;
+  `type.js` the four Fredoka families. A yarn hex is authored in
+  `palette.js` and imported from there, never retyped; the exceptions are
+  inside `pieces.js`'s own drawings (the bomb's wraps, the dial's fill, the
+  coin). Every `Text` names a `fontFamily` from `FONT` and never a
+  `fontWeight`: React Native has no synthetic bolding for a custom family, so
+  on Android a bare weight silently falls back to the system font while iOS
+  looks right. The illustrations, rooms and creatures of DESIGN.md §16 source 2
+  are raster and arrive with their own phases.
 - One phase at a time, in the §11 order. Plan first, tests second, code
   third. Stop at the phase's "done when" and report; don't start the next
   phase unasked.
@@ -77,7 +93,7 @@ All from the repo root unless noted:
 - all tests (engine, levels, api, mobile): `npm test`
 - engine tests only: `npm test -w packages/engine`
 - mobile pure-module tests only: `npm run test:mobile` (`node --test` over
-  `apps/mobile/src/game/*.test.js`)
+  `apps/mobile/src/*/*.test.js` — the pure modules in `src/game` and `src/art`)
 - run the app: `npx expo start` inside `apps/mobile` (or `npm run mobile`)
 - web playground: `npm run dev:playground` (http://localhost:5174)
 - API: `npm run dev:api` (needs `apps/api/.env`, see `apps/api/.env.example`)

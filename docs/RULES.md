@@ -8,10 +8,31 @@ two ever disagree, the spec wins and this file is wrong. It is rewritten at the 
 to match what actually exists.
 
 **Status:** phases 1–4 are built (the engine, the board on the phone, specials and the meter, and
-now the level rules: goals, blockers, beads, winning and losing). Anything marked *not built yet*
-is described so the shape is clear, but nothing in the app does it.
+the level rules: goals, blockers, beads, winning and losing), and phase 5 has drawn the board —
+the yarn, the specials, the blockers, the meter's dial and the game's own font. Since 2026-09-13
+there is a real level to draw it on: Book 1 level 1, "Coaster (olive)", which opens on a level
+card and ends by showing you the coaster you made. What is left of phase 5 is what moves and what
+makes a noise — the blast rings, the clear particles, the confetti and the coin pile, sounds and
+haptics — plus the idle nudge and the Reduce Motion feature. Anything marked *not built yet* is
+described so the shape is clear, but nothing in the app does it.
 
 ---
+
+## Opening a level
+
+Tap a level and its card comes up before the board does: *Level 1* and the project's name, what
+the level asks for — each goal with its own icon and its number — how many moves you get to do it
+in, three empty booster slots captioned *Unlocked at level 8*, and **Play**. Beside all that is
+the thing you are making, drawn pale and unfinished — level 1's coaster is the only project drawn
+so far, and a level without one shows the card with nothing on that side. **Back**, top left, goes
+home. (§11)
+
+Play is dim for a moment and then brightens. That is the board putting itself together behind the
+card, and it is the reason the card exists: a full 9 by 9 board takes 1.8 seconds to open on the
+cheapest phone this game is measured against, so the card is drawn first and the board is only
+built once there is something to look at. It is a cover over a wait, not a loading screen. Press
+Play and the card fades out onto the board. Back is live from the first frame either way, so a
+level opened by mistake never holds you there. (§11, §16, decided 2026-09-13)
 
 ## The board
 
@@ -55,16 +76,21 @@ the line if a cascade made it. (§3, §4)
 
 | On screen | Name | You get it by | It clears |
 |---|---|---|---|
-| **P** | Puff | matching 4 | a plus: itself and the four cells around it, 5 in all |
-| **B** | Bobble | matching 5 | a square around itself, 21 cells |
-| **C** | Popcorn | matching 6 | a bigger square, 45 cells |
-| **Y** | Yarn Bomb | matching 7 or more | bigger again, 77 cells |
-| **F** | Frog | the meter filling | every ball of one colour, anywhere on the board |
-| **H** | Hook | the meter filling, on hook levels | 3 whole rows or 3 whole columns |
+| A cream puff sitting on the ball | **Puff** | matching 4 | a plus: itself and the four cells around it, 5 in all |
+| A bigger, rounder puff | **Bobble** | matching 5 | a square around itself, 21 cells |
+| Three puffs in a cluster | **Popcorn** | matching 6 | a bigger square, 45 cells |
+| The ball itself, dark and wound in five clashing strands, with a lit fuse | **Yarn Bomb** | matching 7 or more | bigger again, 77 cells |
+| A little green crocheted frog, eye bumps on top | **Frog** | the meter filling | every ball of one colour, anywhere on the board |
+| A wooden crochet hook lying across the ball | **Hook** | the meter filling, on hook levels | 3 whole rows or 3 whole columns |
 
-Those letters are scaffolding. Phase 5 replaces every one of them with real art, and the letter
-is only there so you can tell a Popcorn from a Yarn Bomb on a board of plain circles. C is
-Popcorn because P was taken. (§11 conventions, §16)
+The first four sort by size on sight — one bump, a bigger bump, a cluster, then a whole ball
+wrapped in the lot — which is how you tell at a glance how much a swap is about to take. The Yarn
+Bomb is the one exception to "a special rides on a ball": it **replaces** the ball rather than
+sitting on it, so you cannot see what colour it is underneath. That is the owner's call, not an
+oversight. It fires the same four ways as any other special, and underneath it is still a ball of
+some colour: it matches as that colour, clearing it counts towards a collect goal for it, and it
+counts in the tally that decides which colour a lone Frog rips. You just cannot see which one it
+is. (§12, decided 2026-09-12)
 
 **The blast shape** is a square with its four corners rounded off, which is why the counts are 21
 and 45 and 77 rather than 25, 49 and 81. A Puff is the exception and is a plus. (§4)
@@ -104,9 +130,9 @@ Swap two specials into each other and you get one bigger thing, not two:
 
 ## The Frog and the meter
 
-Under the board is a meter with ten notches. Every special that goes off fills it: a Puff by 1, a
+Beside the board is a meter with ten notches. Every special that goes off fills it: a Puff by 1, a
 Bobble by 2, a Popcorn by 3, a Yarn Bomb by 4, and 2 more when several go off together. At ten,
-the Frog drops onto the board and the meter empties. (§4)
+the Frog hops out onto the board and the meter empties. (§4)
 
 The Frog is not a ball and has no colour of its own. Swap it with a ball and it rips out every
 ball of **that ball's** colour, wherever they are. Fire it with no partner, by double-tapping it
@@ -119,13 +145,17 @@ attempt. (§4)
 ignores colour completely: it clears whole lines. Swipe it sideways and it sweeps three rows,
 swipe it up or down and it sweeps three columns, and double-tapping it sweeps rows. (§4)
 
-Right now the meter is a row of pips under the board. The real thing is a round dial beside the
-board, and it arrives with the rest of the interface. (§11 conventions)
+The meter is a round dial, hanging under the goals panel on the left of the board with the frog —
+or the hook — sitting in the middle of it. An olive ring fills round him a notch at a time as
+specials go off, and empties when he hops out. The frog blinks while he waits, and wiggles while
+the ring reads full. The dial is drawn as big as the column can spare, so a level with four goals
+gets a smaller dial rather than a move counter shoved off the bottom of the screen. (§11, §16)
 
 ## What a level asks for
 
 The goals panel sits to the left of the board: the level's name at the top, what it still needs
-in the middle, the moves left at the bottom. Levels mix goals. (§6, §11)
+in the middle — each goal with its own little icon — the moves left at the bottom, and the meter's
+dial under all of it. Levels mix goals. (§6, §11)
 
 | Goal | What you do | How it counts |
 |---|---|---|
@@ -142,9 +172,14 @@ The others count events and never go below zero. (§6, §11 conventions)
 
 | On screen | What it is | How it goes |
 |---|---|---|
-| A rounded square with a number | **Tangle**, 1 to 3 layers; nothing falls through it | one layer per match that touches it, and one per blast whose area covers or touches it |
-| A ball with a thick ring and a knob | **Knot**: a ball tied in place that cannot be swapped, but still matches where it sits | clear it in a match or a blast, like any ball |
-| A cocoa diamond marked M | **Moth**: fills a cell | any match or blast that touches it |
+| A square packed with looping strands, more of them and darker the more layers are left | **Tangle**, 1 to 3 layers; nothing falls through it | one layer per match that touches it, and one per blast whose area covers or touches it |
+| A ball with a cord tied across the bottom of it, knotted in the middle, two cut ends sticking up | **Knot**: a ball tied in place that cannot be swapped, but still matches where it sits | clear it in a match or a blast, like any ball |
+| A dusty-lavender moth, wings out, filling the cell | **Moth**: fills a cell | any match or blast that touches it |
+
+Nothing on the board carries a number. A tangle's layers are how thick it is drawn — five loops
+and pale at one layer, nine and darker at two, fourteen and darkest at three — and it thins as
+they come off. The knot is tied low on its ball on purpose, so a ball that is both knotted and a
+special shows both. (§5, decided 2026-09-12)
 
 A match that lies along two sides of a tangle still strips one layer; two separate matches strip
 two. A frog rip is not a blast and damages neither tangles nor moths. (§5, decided 2026-09-10)
@@ -155,11 +190,13 @@ frog are safe from them. Clear them faster than they breed. (§5, decided 2026-0
 
 ## Beads
 
-A bead is a cream diamond. It falls like a ball, can be swapped like a ball, never matches, and
-nothing destroys it. It leaves through an exit — the bottom open cell of each column unless the
-level says otherwise — and one leaves as soon as it lands on one. A bead resting on a tangle or a
-knot waits there until that blocker goes. On levels with a schedule, a new bead drops from the
-top every few moves until the level's total has been delivered. (§6, decided 2026-09-10)
+A bead is a small pearl with a hole through the middle — pale blue-grey, smaller than a ball and
+shaded differently, so it never reads as one. It falls like a ball, can be swapped like a ball,
+never matches, and nothing destroys it. It leaves through an exit — the bottom open cell of each
+column unless the level says otherwise — and one leaves as soon as it lands on one. A bead resting
+on a tangle or a knot waits there until that blocker goes. On levels with a schedule, a new bead
+drops from the top every few moves until the level's total has been delivered.
+(§6, decided 2026-09-10)
 
 ## Winning and losing
 
@@ -170,6 +207,12 @@ move** on top of the level's own coins. Banner: *Fastened off!* (§6, §7)
 Run out of moves first and it says *Ran out of yarn.* Either way you can try again on a fresh
 board or go home. The offer of five more moves for stitch markers comes with lives and the shop
 in phase 6. (§6, §8)
+
+**The end screen shows the project.** Win and the finished coaster fades in beside the score and
+the coins; lose and the same drawing is there unfinished — the pale one from the level card —
+beside *The goals were not finished in time.* The level's name sits under the banner either way.
+Level 1 is the only project drawn so far, so every other board ends on its numbers and no
+picture at all. (§12, decided 2026-09-13)
 
 ## Score
 
@@ -184,14 +227,28 @@ Yarn Over bonus pays coins, not score. (§7)
 
 Everything above is playable today. These are specified and waiting their turn.
 
-**Real art** (phase 5). Every circle, letter and outline on the board is a placeholder: the yarn
-balls, the special overlays, the frog, the bead, the tangle, the moth, the stitched tile and the
-meter dial are all drawn in phase 5, along with the level card, the win screen's project
-illustration, sounds and haptics.
+**The effects** (the tail of phase 5). The board itself is drawn — the yarn balls, the four
+specials, the frog, the hook, the bead, the button, the three tangles, the knot, the moth, the
+stitch squares and the meter dial — and so is level 1's coaster, pale on the level card and
+finished on the win screen. What is missing is everything that moves or makes a sound: the drawn
+ring a blast throws out, the yarn-fluff particles a cleared ball leaves, the confetti and the coin
+pile at the end, the sounds and the haptics. There is no audio in the app at all — not a file, and
+not the library that would play one. The confetti and the coin burst were always going to be
+commissioned once level 1's still art was in and moving on a phone, which is where it now is.
+(§12, §16, QUESTIONS item 37)
+
+**The nudge and Reduce Motion** (also phase 5). The board does not point at a move when you sit
+still for five seconds, and Reduce Motion is only half honoured. The game does at least play
+properly with the setting on — it did not until 2026-09-13, when every move snapped to its
+finish — and today the setting stops the frog's wiggle and makes the two fades instant, the card
+leaving and the finished piece arriving. Suppressing the overshoot, the shake and, when they
+exist, the particles is still to do. (§3, §11 conventions)
 
 **The room** (phase 6). Every finished project decorates the Craft Nook, which is what the coins
-are for. Book 1's fifteen levels are authored then too, and the shipped level list is empty until
-they exist — the boards on Home today are development boards.
+are for. The win screen says nothing about it, on purpose: the room does not exist yet, and a win
+screen that promises a shelf you cannot visit is worse than one that just says what the level
+paid. Book 1's other fourteen levels are written then too — today the shipped list is level 1 on
+its own, and everything else Home offers is a development board. (decided 2026-09-13)
 
 **Lives, the Continue prompt, boosters, the shop, purchases** (phases 6–7).
 
@@ -199,43 +256,72 @@ they exist — the boards on Home today are development boards.
 
 ## Trying it on the phone
 
-`npm run mobile`, scan the QR in Expo Go. Home lists five development boards: the two sandboxes
-from phase 3 (a frog-meter board and a hook board, with specials already in the corners) and the
-three test levels below. Sandboxes have no goals and 999 moves, so they can only be played, not
-won.
+`npm run mobile`, scan the QR in Expo Go. Home lists **Coaster (olive)** — Book 1 level 1, the
+one level that ships — and then, in development only, the five development boards: the two
+sandboxes from phase 3 (a frog-meter board with the four blast specials in its corners, and a
+hook board with a hook in the middle) and the three test levels below. Sandboxes have no goals
+and 999 moves, so they can only be played, not won. Every one of them opens on its level card.
 
-**Ring coaster** — the stitch level:
+**Coaster (olive)** — the level a player is actually given:
 
-1. The pattern is drawn under the balls as outlined squares. Clear a ball standing on one and
-   the square fills in olive.
-2. The centre square has two layers: it takes two clears, and the outline thins after the first.
-3. The goals panel counts the squares down as you go, and the move counter drops the instant you
-   swipe, not when the board settles.
-4. Win it. The moves you have left turn into P and B balls all over the board, they go off one
-   after another, and *Fastened off!* shows the score and the coins (100 plus 20 a move).
-5. Retry deals a fresh board of the same level; Home goes back with nothing left underneath.
-6. Play another and waste the moves instead: *Ran out of yarn.*, with the same two buttons.
+1. Tap it. The card: *Level 1*, *Coaster (olive)*, one goal — the stitch icon and **21** — *20
+   moves*, three empty booster slots under *Unlocked at level 8*, and the coaster itself on the
+   right, pale and unfinished. Play brightens as soon as the board is ready behind it, which on a
+   5 by 5 was about a fifth of a second on the owner's phone.
+2. Press Play. The card fades and leaves a round-ish 5 by 5: the four corners masked off, 21
+   cells, and every one of them a dashed stitch square — on this level the whole coaster is the
+   goal.
+3. The panel on the left has the level's name, the stitch goal counting down from 21, and the
+   moves counting down from 20. Nothing hangs under it: level 1 runs no meter, so there is no
+   frog on this level and no dial to draw.
+4. Stitch all 21 before the moves run out. The moves you have left turn into Puffs and Bobbles,
+   they go off one after another, and *Fastened off!* names the level, fades the finished coaster
+   in, and shows the score and the coins (100 plus 20 a move).
+5. Retry deals a fresh board of the same level and plays the card again, which is the point of
+   it: the most-pressed button in a match-3 would otherwise land straight on an uncovered mount.
+   Home goes back with nothing left underneath.
+6. Waste the moves instead: *Ran out of yarn.*, the same coaster still pale and unfinished, and
+   the same two buttons.
+
+**Ring coaster** — the stitch level on a bigger board, with a two-layer square:
+
+7. The pattern is drawn under the balls as squares with a dashed outline. Clear a ball standing
+   on one and the square fills in with rows of little stitches.
+8. The centre square has two layers: it takes two clears, and it starts with a heavier dash and a
+   cross through it. The cross goes with the first clear and the outline thins.
+9. The goals panel counts the squares down as you go, and the move counter drops the instant you
+   swipe, not when the board settles. It ends the way level 1 does but with nothing to show for
+   it: this board's project has no illustration, so the end screen is the name and the numbers.
 
 **Charm tail** — collect and beads:
 
-7. The bead is a cream diamond in the middle. Swipe it sideways: it moves like a ball but never
-   makes a match.
-8. Get it to the bottom row and it drops off the edge; the beads goal ticks down.
-9. On moves 4 and 8 a new bead falls in from the top, from a random column.
-10. The rust count only moves when rust balls clear — cascades and blasts included.
+10. The bead is the pearl in the middle. Swipe it sideways: it moves like a ball but never makes
+    a match.
+11. Get it to the bottom row and it drops off the edge; the beads goal ticks down.
+12. On moves 4 and 8 a new bead falls in from the top, from a random column.
+13. The rust count only moves when rust balls clear — cascades and blasts included.
 
 **Moths in the stash** — blockers:
 
-11. A match beside a tangle nudges it and its number drops. Two matches in one move take two
-    layers.
-12. The two tangles marked with a button release it when the last layer goes, and the buried
-    count drops.
-13. Touch a moth with a match or a blast and it goes. Make a move that clears none, and a second
+14. A match beside a tangle nudges it and a layer comes off — the two plain ones have one layer
+    to give, the two carrying buttons have two. Two matches in one move take two layers.
+15. The two tangles with a button showing in the corner release it when the last layer goes, and
+    the buried count drops.
+16. Touch a moth with a match or a blast and it goes. Make a move that clears none, and a second
     moth appears beside one of them, eating the ball that was there.
-14. The moth goal can go **up**. That is the level, not a bug: clear them faster than they spread.
+17. The moth goal can go **up**. That is the level, not a bug: clear them faster than they spread.
+
+Two of the drawings still cannot be reached on a phone: nothing you can open has a three-layer
+tangle or a knot on it — level 1 has neither, and no development board does — so those two wait
+for Book 1's later levels in phase 6.
 
 Throughout: the console never warns about drift or `buildMove`, and a swipe on a quiet corner
-during a long chain still lands when the board settles.
+during a long chain still lands when the board settles. In development every level also prints
+`[card] board mount at …` and `[card] board ready at … ms — … ms under the card`; that last
+number is the stall the card is covering, and it ran 172–298 ms across all six boards on the
+owner's iPhone (2026-09-13). The 1.8 seconds the card was built for is a release build on the
+cheapest Android the game is measured against, and it has not been re-measured with the card in
+front of it.
 
 `npm run play -- packages/levels/levels/dev/moths-7x7.json --seed 2` plays the same rules in the
 terminal as text, which is often the quickest way to see what the engine thinks happened; it

@@ -5,9 +5,10 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBoard } from '@hooked/engine';
+import { METER_FULL, parseBoard } from '@hooked/engine';
 import { buildModel, projectPieces } from './model.js';
 import { buildMove, quietCells } from './move.js';
+import { sampleTrack } from './animate.js';
 import {
   BEAD_EXIT_DROP,
   BEAD_EXIT_MS,
@@ -18,8 +19,10 @@ import {
   CLEAR_MS,
   CREATE_MS,
   FALL_MS,
+  METER_DROP_MS,
   MOTH_LUNGE,
   MOTH_MS,
+  POSE,
   SWAP_MS,
   YARN_OVER_PLACE_MS,
 } from './timings.js';
@@ -435,6 +438,98 @@ test('a frog rip pops its colour outward from the frog over the rip window', () 
   assert.equal(far.scale[0].at + far.scale[0].duration, 400);
 });
 
+test('a frog that fires its own rip sticks its tongue out as the wave starts', () => {
+  const model = modelOf(['o. m. o.', 'F. o. m.']);
+  const frog = model.grid[1][0];
+  const move = buildMove(model, [
+    clear([P(2, 0)]),
+    {
+      type: 'frogRip',
+      pos: P(0, 1),
+      color: 'olive',
+      cells: [P(0, 0), P(0, 1), P(1, 1)],
+      cascade: 1,
+      points: 540,
+      combo: false,
+    },
+  ]);
+  const track = move.tracks.get(frog);
+  assert.equal(track.initial.pose, POSE.rest);
+  assert.deepEqual(track.pose, [{ at: CLEAR_MS, duration: 0, to: POSE.tongue, easing: 'linear' }]);
+  assert.deepEqual(move.tracks.get(model.grid[0][0]).pose, []); // the balls it takes only pop
+});
+
+test('a rip that opens the move sets the initial pose, because a segment at 0 is not sampleable', () => {
+  // sampleTrack(track, 0) must equal track.initial for every track — oracle.test.js asserts it on
+  // every move of every board. A zero-duration segment at at=0 already reads as its `to` at t=0,
+  // so the tongue of a frog whose rip opens the move belongs in `initial`, not in the segments.
+  const model = modelOf(['o. m. o.', 'F. o. m.']);
+  const frog = model.grid[1][0];
+  const move = buildMove(model, [
+    {
+      type: 'frogRip',
+      pos: P(0, 1),
+      color: 'olive',
+      cells: [P(0, 0), P(0, 1), P(1, 1)],
+      cascade: 1,
+      points: 540,
+      combo: false,
+    },
+  ]);
+  const track = move.tracks.get(frog);
+  assert.equal(track.initial.pose, POSE.tongue);
+  assert.deepEqual(track.pose, []);
+  assert.equal(sampleTrack(track, 0).pose, POSE.tongue);
+});
+
+test('a frog taken by a blast gets no tongue: the rip it seeds leaves its cell out', () => {
+  // exactly what the engine emits (packages/engine/test/fire.test.js:191-199): the blast lists
+  // the frog's cell, and the rip seeded from it does not, so there is no frog left to pose.
+  const model = modelOf(['m. o. m.', 'o. oP F.', 'm. o. m.']);
+  const frog = model.grid[1][2];
+  const move = buildMove(model, [
+    {
+      type: 'blast',
+      pos: P(1, 1),
+      special: 'puff',
+      radius: 1,
+      orientation: null,
+      cells: [P(1, 0), P(0, 1), P(1, 1), P(2, 1), P(1, 2)],
+      cascade: 1,
+      points: 100,
+      combo: false,
+    },
+    {
+      type: 'frogRip',
+      pos: P(2, 1),
+      color: 'mustard',
+      cells: [P(0, 0), P(2, 0), P(0, 2), P(2, 2)],
+      cascade: 1,
+      points: 580,
+      combo: false,
+    },
+  ]);
+  assert.equal(move.tracks.has(frog), true); // the blast took it, so it does have a track
+  for (const [id, track] of move.tracks) assert.deepEqual(track.pose, [], `${id}`);
+});
+
+test('only a frog poses at a rip: the tongue belongs to the piece, not to the step', () => {
+  // The engine only ever seeds a rip from a frog, so this is the guard rather than a stream it
+  // emits — but the blast case above reaches the same branch with no frog left to pose.
+  const move = buildMove(modelOf(['o. o. o.']), [
+    {
+      type: 'frogRip',
+      pos: P(1, 0),
+      color: 'olive',
+      cells: [P(0, 0), P(1, 0), P(2, 0)],
+      cascade: 1,
+      points: 300,
+      combo: false,
+    },
+  ]);
+  for (const [id, track] of move.tracks) assert.deepEqual(track.pose, [], `${id}`);
+});
+
 test('a meter drop pops the ball it replaces and springs the new piece in', () => {
   const model = modelOf(['o. m.', 'b. r.']);
   const move = buildMove(model, [{ type: 'meterDrop', pos: P(1, 0), piece: { kind: 'frog' } }]);
@@ -449,13 +544,123 @@ test('a meter drop pops the ball it replaces and springs the new piece in', () =
   assert.equal(move.tracks.get(landed).scale[0].to, 1);
 });
 
-test('a meter step records the charge and costs the move no time at all', () => {
+test('a frog dropped by the meter hops onto its cell and settles back to rest', () => {
+  const model = modelOf(['o. m.', 'b. r.']);
+  const move = buildMove(model, [
+    swap(P(0, 0), P(1, 0)),
+    { type: 'meterDrop', pos: P(1, 0), piece: { kind: 'frog' } },
+  ]);
+  const track = move.tracks.get(move.mounts[0]);
+  assert.equal(track.initial.pose, POSE.rest);
+  assert.deepEqual(track.pose, [
+    { at: SWAP_MS, duration: 0, to: POSE.hop, easing: 'linear' },
+    { at: SWAP_MS + METER_DROP_MS, duration: 0, to: POSE.rest, easing: 'linear' },
+  ]);
+  assert.equal(move.total, SWAP_MS + METER_DROP_MS);
+});
+
+test('a hook dropped by the meter poses not at all: the hop belongs to the frog', () => {
+  const model = modelOf(['o. m.', 'b. r.']);
+  const move = buildMove(model, [
+    { type: 'meterDrop', pos: P(1, 0), piece: yarn('mustard', { special: 'hook' }) },
+  ]);
+  const landed = move.mounts[0];
+  assert.equal(move.model.pieces.get(landed).piece.special, 'hook');
+  assert.equal(move.tracks.get(landed).initial.pose, POSE.rest);
+  assert.deepEqual(move.tracks.get(landed).pose, []);
+});
+
+test('every track starts at rest, whether its piece was on the board or mounted mid-move', () => {
+  const model = modelOf(['o. o. o. o. m.']);
+  const move = buildMove(model, [
+    swap(P(3, 0), P(4, 0)),
+    clear(
+      [P(0, 0), P(1, 0), P(2, 0), P(3, 0)],
+      [{ pos: P(3, 0), piece: yarn('olive', { special: 'puff' }) }],
+    ),
+    { type: 'fall', moves: [] },
+    { type: 'spawn', cells: [{ pos: P(0, 0), piece: yarn('blush') }] },
+  ]);
+  assert.equal(move.mounts.length, 2); // the created special and the spawned ball
+  for (const [id, track] of move.tracks) {
+    assert.equal(track.initial.pose, POSE.rest, `${id}`);
+    assert.deepEqual(track.pose, [], `${id}`);
+  }
+});
+
+test('a meter step records one frame at its clock value and costs the move no time at all', () => {
   const model = modelOf(['o. m.']);
   const move = buildMove(model, [{ type: 'meter', charge: 7, full: 10 }]);
-  assert.equal(move.meter, 7);
+  assert.deepEqual(move.meterFrames, [{ at: 0, charge: 7, full: 10 }]);
   assert.equal(move.total, 0);
   assert.equal(move.tracks.size, 0);
-  assert.equal(buildMove(model, []).meter, null);
+  const afterSwap = buildMove(model, [
+    swap(P(0, 0), P(1, 0)),
+    { type: 'meter', charge: 7, full: 10 },
+  ]);
+  assert.deepEqual(afterSwap.meterFrames, [{ at: SWAP_MS, charge: 7, full: 10 }]);
+  assert.equal(afterSwap.total, SWAP_MS);
+});
+
+test('a move that never charges carries an empty frame list, and no charge of its own', () => {
+  const model = modelOf(['o. m.']);
+  const move = buildMove(model, [swap(P(0, 0), P(1, 0))]);
+  assert.deepEqual(move.meterFrames, []);
+  assert.equal(Object.hasOwn(move, 'meter'), false); // the readout reads the frames now
+  assert.deepEqual(buildMove(model, []).meterFrames, []);
+});
+
+test('meter steps across cascades become one frame each, in clock order', () => {
+  const model = modelOf(['o. m.', 'b. r.', '__ __']);
+  const move = buildMove(model, [
+    clear([P(0, 0)]),
+    { type: 'meter', charge: 4, full: 10 },
+    { type: 'fall', moves: [] },
+    clear([P(1, 0)], [], 2),
+    { type: 'meter', charge: 9, full: 10 },
+  ]);
+  assert.deepEqual(move.meterFrames, [
+    { at: CLEAR_MS, charge: 4, full: 10 },
+    { at: CLEAR_MS + FALL_MS + CLEAR_MS, charge: 9, full: 10 },
+  ]);
+});
+
+// The bug this phase fixes: the engine zeroes the charge inside the same swap() call that filled
+// it, so game.state().meter.charge already reads 0 by the time the HUD looks. The frames are the
+// only place a full meter is ever visible, and the drop's own zero comes after it.
+test('a meter that fills and drops in one move still reports the charge state() has already lost', () => {
+  const model = modelOf(['o. m.', 'b. r.', '__ __']);
+  const move = buildMove(model, [
+    clear([P(0, 0)]),
+    { type: 'meter', charge: 10, full: 10 },
+    { type: 'fall', moves: [{ from: P(0, 1), to: P(0, 2) }] },
+    { type: 'meterDrop', pos: P(1, 1), piece: { kind: 'frog' } },
+  ]);
+  assert.deepEqual(move.meterFrames, [
+    { at: CLEAR_MS, charge: 10, full: 10 },
+    { at: CLEAR_MS + FALL_MS, charge: 0, full: 10 },
+  ]);
+  assert.equal(move.total, CLEAR_MS + FALL_MS + METER_DROP_MS);
+});
+
+test('a drop that follows no meter step of its own still clears the readout', () => {
+  const move = buildMove(modelOf(['o. m.', 'b. r.']), [
+    { type: 'meterDrop', pos: P(1, 0), piece: { kind: 'frog' } },
+  ]);
+  assert.deepEqual(
+    move.meterFrames.map((f) => f.charge),
+    [0],
+  );
+  assert.equal(move.meterFrames[0].at, 0);
+  // the engine's meterDrop step carries no `full` of its own, so the frame falls back to
+  // METER_FULL rather than inventing a number the dial would then divide by
+  assert.equal(move.meterFrames[0].full, METER_FULL);
+});
+
+test('a charge past full is carried through unchanged: the clamp belongs to the drawing', () => {
+  // the engine legitimately reports 11 on a full of 10, and buildMove reports what it was told
+  const move = buildMove(modelOf(['o. m.']), [{ type: 'meter', charge: 11, full: 10 }]);
+  assert.deepEqual(move.meterFrames, [{ at: 0, charge: 11, full: 10 }]);
 });
 
 const blocker = (pos, kind, layersLeft, extra = {}) => ({

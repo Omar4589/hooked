@@ -38,6 +38,11 @@ export const validateLevel = (json, name = String(json?.name ?? json?.id)) => {
     fail('name must be a non-empty string');
   }
   if (!Number.isInteger(json.book) || json.book < 0) fail('book must be a non-negative integer');
+  // The win screen draws the finished project, and the illustration registry is keyed on this
+  // string (apps/mobile/src/art/projects.js): a level without one fastens off into nothing.
+  if (typeof json.project !== 'string' || json.project.trim() === '') {
+    fail('project must be a non-empty string');
+  }
   if (level.colors.length < COLOR_COUNT.min || level.colors.length > COLOR_COUNT.max) {
     fail(
       `colors lists ${level.colors.length}, a level plays ${COLOR_COUNT.min} to ${COLOR_COUNT.max}`,

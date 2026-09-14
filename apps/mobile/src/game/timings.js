@@ -2,6 +2,13 @@
 // feel"). They live here alone so the phone pass is a one-file edit.
 
 /**
+ * The pictures a piece can be drawn as. A pose is a swap between drawings, not a distance to
+ * cover, so it is sampled like every other property but never blended: every set is instant.
+ * Only the frog has more than one — it hops off the meter and flicks its tongue at a rip.
+ */
+export const POSE = Object.freeze({ rest: 0, hop: 1, tongue: 2 });
+
+/**
  * One property's move over time, in grid units. `at` is milliseconds from the start of the move
  * (not from the previous segment): a move is one absolute timeline, sampled by
  * ./animate.js. A property's segments are sorted and never overlap; `duration` may be 0 for an
@@ -18,11 +25,12 @@
  * piece needs nothing but its track and the board's clock to draw itself.
  * @typedef {Object} Track
  * @property {number} base
- * @property {{ x: number, y: number, scale: number, opacity: number }} initial
+ * @property {{ x: number, y: number, scale: number, opacity: number, pose: number }} initial
  * @property {Segment[]} x
  * @property {Segment[]} y
  * @property {Segment[]} scale
  * @property {Segment[]} opacity
+ * @property {Segment[]} pose   which POSE is drawn; instant sets, never a tween
  */
 
 /**
@@ -113,6 +121,16 @@ export const METER_DROP_MS = 300;
 
 /** The meter readout fills a notch (§16). It runs off the board's own clock, not the move's. */
 export const METER_MS = 150;
+
+/** The frog blinks while it waits (§12), and waits this long between blinks. */
+export const BLINK_MS = 120;
+export const BLINK_GAP_MS = 3400;
+
+/** The frog wiggles while the readout is full (§16 `meter`): one lean over and back. */
+export const WIGGLE_MS = 300;
+
+/** How far that lean goes, in degrees. */
+export const WIGGLE_DEG = 8;
 
 /** How late the JS safety net fires when the UI clock's own callback never arrives. */
 export const FINISH_SLACK_MS = 250;

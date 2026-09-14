@@ -1,5 +1,5 @@
-// The animation system, all of it: a pure function from (track, time) to the four numbers a
-// piece draws with. The board runs one clock per move and every piece samples it on the UI
+// The animation system, all of it: a pure function from (track, time) to the five numbers a
+// piece draws with — where it is, how big, how visible, and which picture of itself it shows. The board runs one clock per move and every piece samples it on the UI
 // thread, so pieces in a column share the same instant and a stack can never drift apart the
 // way chained per-piece animations do. Being pure, it is also testable in node.
 
@@ -51,10 +51,12 @@ export const sampleProp = (segments, initial, t) => {
 };
 
 /**
- * Where a piece is, how big and how visible, `t` milliseconds into its move.
+ * Where a piece is, how big and how visible, `t` milliseconds into its move — and which picture
+ * it is drawn as. A pose names a drawing rather than a distance, so it is only ever one of the
+ * values its track was given: its sets are all zero-duration, and those never blend.
  * @param {Track} track
  * @param {number} t
- * @returns {{ x: number, y: number, scale: number, opacity: number }}
+ * @returns {{ x: number, y: number, scale: number, opacity: number, pose: number }}
  */
 export const sampleTrack = (track, t) => {
   'worklet';
@@ -63,6 +65,7 @@ export const sampleTrack = (track, t) => {
     y: sampleProp(track.y, track.initial.y, t),
     scale: sampleProp(track.scale, track.initial.scale, t),
     opacity: sampleProp(track.opacity, track.initial.opacity, t),
+    pose: sampleProp(track.pose, track.initial.pose, t),
   };
 };
 

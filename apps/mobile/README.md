@@ -44,7 +44,7 @@ one-off commands use `npx eas-cli@24 <command>` from `apps/mobile`.
 
 ```bash
 npx expo start                  # Metro + QR; open in Expo Go on the phone (same Wi-Fi)
-npm test                        # node --test over src/game/*.test.js (the pure modules)
+npm test                        # node --test over src/*/*.test.js (the pure modules in game/ and art/)
 npm run ota:staging             # JS/assets to TestFlight + Play internal (fingerprint-checked)
 npm run ota:production          # JS/assets to real users (fingerprint-checked)
 npm run ota:check               # compare the tree's fingerprint to the fielded builds, publish nothing
@@ -64,8 +64,18 @@ one SDK bump (`npx expo install expo@latest --fix`, then bump the `react` / `rea
 overrides in the root package.json to match) when Expo Go moves to SDK 58, and switch to a
 development build at phase 7 when RevenueCat arrives.
 
+The font **files** are deliberately not one of those inputs. Fredoka loads at runtime with
+`useFonts` in `App.jsx` (families in `src/art/type.js`), not through the `expo-font` plugin's
+`fonts` array, which would copy the `.ttf` files into the native projects — a native change that
+moves the fingerprint and orphans every OTA channel, and one Expo Go could not run. A new weight
+is a JS change and ships over the air. Phase 5 did add a bare `expo-font` entry to `app.json`'s
+`plugins` (no `fonts` array), and a plugin hashes, so that one edit moved the fingerprint — before
+there was a build to orphan.
+
 ## Layout
 
-- `index.js` registers `App.jsx`: gesture root, safe-area provider, one native stack.
+- `index.js` registers `App.jsx`: gesture root, safe-area provider, one native stack, and the
+  runtime font load that holds the splash until Fredoka is in (or has failed).
 - `src/` — see `src/README.md` for the §11 folders; `src/nav.js` is the only way to navigate.
-- `assets/` — icon and splash placeholders from the Expo template until phase 5.
+- `assets/` — still the Expo template's icon and splash. Phase 5 drew the board, not the app
+  icon; the game's own art lives in `src/art`, not as files here.
